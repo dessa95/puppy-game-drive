@@ -3,376 +3,531 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>강아지 육성 게임</title>
+  <title>귀염뽀짝 강아지 키우기</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
     * {
       box-sizing: border-box;
-      font-family: 'Arial', sans-serif;
-    }
-    body {
       margin: 0;
       padding: 0;
-      background: #fdf6ec;
-      overflow: hidden;
     }
-    #gameContainer {
-      width: 100vw;
-      height: 100vh;
+    body {
+      font-family: 'Gowun Dodum', sans-serif;
+      background-color: #fff8f0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      position: relative;
+      min-height: 100vh;
     }
-    #startScreen, #breedSelectScreen, #nameInputScreen, #gameScreen, #albumScreen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: #fdf6ec;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
+    h1 {
+      margin-top: 30px;
+      font-size: 2.8rem;
+      color: #ff914d;
     }
-    #startScreen h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
-    }
-    .btn {
-      background-color: #ffce54;
-      border: none;
-      border-radius: 10px;
-      padding: 15px 30px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      margin: 10px;
-      transition: background-color 0.3s;
-    }
-    .btn:hover {
-      background-color: #ffda77;
-    }
-    #gameScreen {
+    .screen {
       display: none;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-    #dogImage {
-      width: 240px;
-      height: 240px;
+    .active {
+      display: flex !important;
+    }
+    .button {
+      padding: 12px 24px;
       margin: 10px;
-    }
-    #statusPanel, #eventPanel, #interactionPanel {
-      margin-top: 10px;
-      padding: 10px;
-      background-color: #fffbe6;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 80%;
-      text-align: center;
-    }
-    #eventPanel {
       font-size: 1.1rem;
-      font-weight: bold;
-      min-height: 80px;
+      background: #ffcdcd;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: background 0.2s;
     }
-    #interactionPanel button {
+    .button:hover {
+      background: #ffa4a4;
+    }
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+    #game-wrapper {
+      width: 100%;
+      max-width: 900px;
+      height: 600px;
+      position: relative;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 80px;
+    }
+    .status-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 15px;
+      border-radius: 15px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      border: 1px solid #ffdad5;
+    }
+    .event-timer {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 243, 234, 0.95);
+      padding: 10px 15px;
+      border-radius: 15px;
+      font-size: 0.95rem;
+      color: #cc5c00;
+      border: 1px dashed #ffa65e;
+    }
+    .celebrate {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.2rem;
+      background: #fff3cd;
+      color: #d9480f;
+      padding: 15px 25px;
+      border: 2px solid #ffd6a5;
+      border-radius: 20px;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+      z-index: 999;
+      display: none;
+    }
+    .puppy-image {
+      width: 260px;
+      height: auto;
+      margin: 10px;
+      transition: transform 0.3s ease;
+    }
+    .shake {
+      animation: shake 0.6s ease;
+    }
+    .grow {
+      animation: grow 0.6s ease;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+    @keyframes grow {
+      0% { transf
+    .interaction-toggle {
+      margin-top: 15px;
+    }
+    .interaction-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .interaction-panel .button {
+      background: #d2f4dc;
       margin: 5px;
     }
-    #albumScreen {
+    #event-box {
+      margin-top: 10px;
+      width: 90%;
+      background: #fff7e6;
+      padding: 15px;
+      border-radius: 15px;
+      border: 1px solid #ffe0b3;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #event-text {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      text-align: center;
+      color: #cc5c00;
+    }
+    .event-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .album-screen {
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #fffbe6;
+      padding: 30px;
+      background: #fffdf4;
+      width: 100%;
+      height: 100vh;
     }
-    #albumScreen h2 {
+    .album-screen h2 {
       font-size: 2rem;
+      color: #e56700;
       margin-bottom: 20px;
+    }
+    .album-photos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .album-photos img {
+      width: 180px;
+      border-radius: 15px;
+      border: 2px solid #ffc68d;
+    }
+    .restart-button {
+      margin-top: 30px;
+      background: #ffe2c6;
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <audio id="bgm" src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" autoplay loop></audio>
+  <h1>🐶 귀염뽀짝 강아지 키우기</h1>
 
-    <div id="startScreen">
-      <h1>🐶 강아지 육성 게임</h1>
-      <button class="btn" onclick="showBreedSelect(); this.style.display='none';">게임 시작</button>
+  <!-- 1. 첫 화면: 게임 시작 -->
+  <div id="launch-screen" class="screen active">
+    <button class="button" onclick="goToBreedSelect()">게임 시작</button>
+  </div>
+
+  <!-- 2. 품종 선택 -->
+  <div id="breed-screen" class="screen">
+    <p>강아지 품종을 선택하세요:</p>
+    <div>
+      <button class="button" onclick="selectBreed('g')">골든 리트리버</button>
+      <button class="button" onclick="selectBreed('b')">비숑 프리제</button>
     </div>
+  </div>
 
-    <div id="breedSelectScreen" style="display:none;">
-      <h2>강아지 품종을 선택하세요</h2>
-      <button class="btn" onclick="selectBreed('bichon')">비숑 프리제</button>
-      <button class="btn" onclick="selectBreed('golden')">골든 리트리버</button>
+  <!-- 3. 이름 입력 -->
+  <div id="name-screen" class="screen">
+    <p>강아지 이름을 지어주세요:</p>
+    <input type="text" id="puppy-name" placeholder="예: 뭉치" />
+    <button class="button" onclick="startGame()">이름 확정하고 게임 시작</button>
+  </div>
+
+  <!-- 4. 본 게임 화면 -->
+  <div id="game-screen" class="screen">
+    <div id="game-wrapper">
+      <img id="puppy-img" class="puppy-image" src="" alt="puppy" />
+      <div class="status-bar" id="statusBar"></div>
+      <div class="event-timer" id="eventTimer">다음 이벤트까지: 20초</div>
+      <div class="celebrate" id="celebrate">🎉 성장했어요! <button class="button" onclick="acknowledgeGrowth()">축하해</button></div>
     </div>
-
-    <div id="nameInputScreen" style="display:none;">
-      <h2>강아지 이름을 입력하세요</h2>
-      <input type="text" id="dogNameInput" placeholder="이름을 입력하세요" />
-      <button class="btn" onclick="startGame()">게임 시작하기</button>
+    <div id="event-box">
+      <div id="event-text">이벤트가 여기에 표시됩니다.</div>
+      <div class="event-options" id="event-options"></div>
     </div>
-
-    <div id="gameScreen">
-      <div id="statusPanel">
-        <h3 id="dogInfo">이름: - / 나이: 0살</h3>
-        <div>기분: <span id="mood">😊</span></div>
-        <div>성장 단계: <span id="growthStage">신생아기</span></div>
-      </div>
-
-      <img id="dogImage" src="" alt="강아지 이미지" />
-
-      <div id="eventPanel"></div>
-
-      <div id="interactionPanel">
-        <button class="btn" onclick="triggerEvent('pet')">🐾 쓰다듬기</button>
-        <button class="btn" onclick="triggerEvent('feed')">🍖 간식주기</button>
-        <button class="btn" onclick="triggerEvent('walk')">🚶 산책하기</button>
-      </div>
+    <div class="interaction-toggle">
+      <button class="button" onclick="toggleInteractionPanel()">직접 상호작용 🔁</button>
     </div>
-
-    <div id="albumScreen">
-      <h2 id="albumMessage">🎉 OO이가 예쁘고 멋지게 자랐어요!</h2>
-      <img id="finalDogImage" src="" alt="강아지 성장 완료 이미지" />
-      <button class="btn" onclick="location.reload()">다시 시작하기</button>
+    <div class="interaction-panel" id="interactionPanel">
+      <button class="button" onclick="directInteraction('쓰다듬기')">쓰다듬기</button>
+      <button class="button" onclick="directInteraction('귀 냄새 맡기')">귀 냄새 맡기</button>
+      <button class="button" onclick="directInteraction('발 냄새 맡기')">발 냄새 맡기</button>
+      <button class="button" onclick="directInteraction('껴안기')">껴안기</button>
     </div>
-  </div> <!-- gameContainer 끝 -->
+    <audio id="bgm" loop>
+      <source src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" type="audio/mp3" />
+    </audio>
+  </div>
 
+  <!-- 5. 추억 앨범 화면 -->
+  <div id="album-screen" class="album-screen">
+    <h2 id="album-title">🐾 추억 앨범</h2>
+    <div class="album-photos" id="albumPhotos"></div>
+    <button class="button restart-button" onclick="restartGame()">다시 시작하기</button>
+  </div>
   <script>
-    const dogImages = {
-      bichon: {
-        baby: "https://dessa95.github.io/puppy-game-drive/b1.png",
-        teen: "https://dessa95.github.io/puppy-game-drive/b2.png",
-        adult: "https://dessa95.github.io/puppy-game-drive/b3.png",
-        old: "https://dessa95.github.io/puppy-game-drive/b4.png"
-      },
-      golden: {
-        baby: "https://dessa95.github.io/puppy-game-drive/g1.png",
-        teen: "https://dessa95.github.io/puppy-game-drive/g2.png",
-        adult: "https://dessa95.github.io/puppy-game-drive/g3.png",
-        old: "https://dessa95.github.io/puppy-game-drive/g4.png"
-      }
+    // 상태 저장 변수들
+    let breed = '';
+    let puppyName = '';
+    let age = 0;
+    let mood = 5; // 기분 점수 (0~10)
+    let ageTimer, eventTimer, albumTimer;
+    let eventCountdown = 20;
+    let isEventActive = false;
+    let isGrowing = false;
+    let growthLog = [];
+
+    const breedMap = {
+      g: ['g1', 'g2', 'g3', 'g4'],
+      b: ['b1', 'b2', 'b3', 'b4']
     };
 
-    let selectedBreed = "";
-    let dogName = "";
-    let age = 0;
-    let mood = 5;
-    let growthStage = "신생아기";
-    let ageTimer = null;
-    let eventTimer = null;
-    let inEvent = false;
-
-    function showBreedSelect() {
-      document.getElementById("startScreen").style.display = "none";
-      document.getElementById("breedSelectScreen").style.display = "flex";
+    function goToBreedSelect() {
+      switchScreen('launch-screen', 'breed-screen');
+      const bgm = document.getElementById("bgm");
+      bgm.play();
     }
 
-    function selectBreed(breed) {
-      selectedBreed = breed;
-      document.getElementById("breedSelectScreen").style.display = "none";
-      document.getElementById("nameInputScreen").style.display = "flex";
+    function selectBreed(code) {
+      breed = code;
+      switchScreen('breed-screen', 'name-screen');
     }
 
     function startGame() {
-      dogName = document.getElementById("dogNameInput").value.trim();
-      if (!dogName) {
-        alert("이름을 입력해주세요!");
+      const input = document.getElementById('puppy-name');
+      if (!input.value.trim()) {
+        alert('강아지 이름을 입력해주세요!');
         return;
       }
+      puppyName = input.value.trim();
+      switchScreen('name-screen', 'game-screen');
+      initializeGame();
+    }
 
-      document.getElementById("nameInputScreen").style.display = "none";
-      document.getElementById("gameScreen").style.display = "flex";
-      updateDogInfo();
-      updateDogImage();
+    function switchScreen(currentId, nextId) {
+      document.getElementById(currentId).classList.remove('active');
+      document.getElementById(nextId).classList.add('active');
+    }
+
+    function initializeGame() {
+      updatePuppyImage();
+      updateStatus();
+      updateTimerDisplay();
+      document.getElementById("event-text").innerText = '';
+      document.getElementById("event-options").innerHTML = '';
 
       ageTimer = setInterval(() => {
-        age++;
-        updateDogInfo();
-        updateGrowthStage();
-      }, 20000); // 20초마다 나이 1 증가
-
-      startEventLoop();
-    }
-
-    function updateDogInfo() {
-      document.getElementById("dogInfo").textContent = `이름: ${dogName} / 나이: ${age}살`;
-    }
-
-    function updateDogImage() {
-      let stage = getStageKey();
-      document.getElementById("dogImage").src = dogImages[selectedBreed][stage];
-    }
-
-    function getStageKey() {
-      if (age < 2) return "baby";
-      if (age < 6) return "teen";
-      if (age < 10) return "adult";
-      return "old";
-    }
-
-    function updateGrowthStage() {
-      const stage = getStageKey();
-      let label = "";
-      switch (stage) {
-        case "baby": label = "신생아기"; break;
-        case "teen": label = "청소년기"; break;
-        case "adult": label = "성년기"; break;
-        case "old":
-          label = "노령기";
-          setTimeout(() => endGame(), 60000); // 노령기 진입 후 1분 후 종료
-          break;
-      }
-      growthStage = label;
-      document.getElementById("growthStage").textContent = growthStage;
-      updateDogImage();
-      showStageEffect(label);
-    }
-
-    function showStageEffect(label) {
-      const panel = document.getElementById("eventPanel");
-      panel.innerHTML = `🎉 ${label}로 성장했어요!`;
-      panel.style.animation = "pulse 1s ease";
-      setTimeout(() => {
-        panel.innerHTML = "";
-        panel.style.animation = "";
-      }, 2000);
-    }
-    function startEventLoop() {
-      eventTimer = setInterval(() => {
-        if (!inEvent) {
-          triggerRandomEvent();
+        if (!isEventActive && !isGrowing) {
+          age++;
+          checkGrowth();
+          updateStatus();
         }
-      }, 5000); // 5초마다 랜덤 이벤트 체크
+      }, 20000);
+
+      eventTimer = setInterval(() => {
+        if (!isEventActive && !isGrowing) {
+          eventCountdown -= 1;
+          updateTimerDisplay();
+          if (eventCountdown <= 0) {
+            triggerRandomEvent();
+            eventCountdown = 20;
+          }
+        }
+      }, 1000);
+
+      albumTimer = setInterval(() => {
+        if (age >= 10 && !isEventActive && !isGrowing) {
+          const overTime = age * 20 - 200;
+          if (overTime >= 60) {
+            showAlbum();
+            clearInterval(ageTimer);
+            clearInterval(eventTimer);
+            clearInterval(albumTimer);
+          }
+        }
+      }, 1000);
+    }
+
+    function updatePuppyImage() {
+      const stage = getGrowthStage();
+      const img = document.getElementById("puppy-img");
+      img.src = `https://dessa95.github.io/puppy-game-drive/${breedMap[breed][stage]}.png`;
+    }
+
+    function getGrowthStage() {
+      if (age < 2) return 0;
+      if (age < 6) return 1;
+      if (age < 10) return 2;
+      return 3;
+    }
+
+    function updateStatus() {
+      document.getElementById("statusBar").innerHTML =
+        `이름: ${puppyName}<br>나이: ${age}세<br>기분: ${getMoodText()}`;
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById("eventTimer").innerText = `다음 이벤트까지: ${eventCountdown}초`;
+    }
+
+    function getMoodText() {
+      if (mood >= 8) return "😄 아주 좋아요!";
+      if (mood >= 5) return "🙂 괜찮아요";
+      if (mood >= 3) return "😐 살짝 예민해요";
+      return "😢 우울해요";
     }
 
     function triggerRandomEvent() {
-      inEvent = true;
-      clearInterval(ageTimer); // 이벤트 중 나이 증가 일시 중지
-
+      isEventActive = true;
+      const eventText = document.getElementById("event-text");
+      const eventOptions = document.getElementById("event-options");
       const events = [
         {
-          text: "강아지가 졸린 눈으로 널 바라봐요. 재워줄까요?",
-          options: ["재워준다", "그냥 둔다"],
-          effects: [1, -1]
+          text: "산책 가고 싶어해요!",
+          options: [
+            { label: "같이 산책 가기", effect: 2 },
+            { label: "무시하기", effect: -2 }
+          ]
         },
         {
-          text: "강아지가 장난감을 갖고 와요. 놀아줄까요?",
-          options: ["같이 논다", "무시한다"],
-          effects: [2, -2]
+          text: "배고파 보여요.",
+          options: [
+            { label: "간식 주기", effect: 1 },
+            { label: "안 줘도 돼", effect: -1 }
+          ]
         },
         {
-          text: "산책을 가자고 짖고 있어요!",
-          options: ["바로 나간다", "피곤하다고 한다"],
-          effects: [2, -2]
+          text: "놀아달라고 졸라요.",
+          options: [
+            { label: "공 던지기", effect: 2 },
+            { label: "귀찮아", effect: -2 }
+          ]
         },
         {
-          text: "밥그릇을 발로 툭 쳐요. 배가 고픈가봐요!",
-          options: ["밥을 준다", "무시한다"],
-          effects: [1, -1]
-        },
-        {
-          text: "우울한 표정으로 당신을 쳐다봐요...",
-          options: ["안아준다", "무시한다"],
-          effects: [2, -2]
+          text: "낯선 사람이 왔어요!",
+          options: [
+            { label: "조용히 시키기", effect: 0 },
+            { label: "같이 짖기", effect: 1 }
+          ]
         }
       ];
 
       const event = events[Math.floor(Math.random() * events.length)];
-      const panel = document.getElementById("eventPanel");
-      panel.innerHTML = `
-        ${event.text}<br/>
-        <button class="btn" onclick="resolveEvent(${event.effects[0]})">${event.options[0]}</button>
-        <button class="btn" onclick="resolveEvent(${event.effects[1]})">${event.options[1]}</button>
-      `;
+      eventText.innerText = event.text;
+      eventOptions.innerHTML = '';
+      event.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "button";
+        btn.innerText = opt.label;
+        btn.onclick = () => handleEventChoice(opt.effect);
+        eventOptions.appendChild(btn);
+      });
     }
-
-    function resolveEvent(effect) {
+    function handleEventChoice(effect) {
       mood += effect;
       if (mood > 10) mood = 10;
       if (mood < 0) mood = 0;
 
-      document.getElementById("mood").textContent = getMoodEmoji();
-
-      const panel = document.getElementById("eventPanel");
-      panel.innerHTML = "🐶 강아지가 반응을 보였어요!";
-      setTimeout(() => {
-        panel.innerHTML = "";
-        inEvent = false;
-        startEventLoop();
-        ageTimer = setInterval(() => {
-          age++;
-          updateDogInfo();
-          updateGrowthStage();
-        }, 20000);
-      }, 2000);
-    }
-
-    function triggerEvent(type) {
-      if (inEvent) return;
-
-      inEvent = true;
-      clearInterval(ageTimer);
-      clearInterval(eventTimer);
-
-      const panel = document.getElementById("eventPanel");
-      let text = "";
-      let change = 0;
-
-      if (type === "pet") {
-        text = "강아지를 쓰다듬었어요. 기분이 좋아졌어요!";
-        change = 1;
-        dogWagTail();
-      } else if (type === "feed") {
-        text = "강아지가 맛있게 간식을 먹었어요!";
-        change = 2;
-      } else if (type === "walk") {
-        text = "산책을 다녀왔어요. 기분이 한결 좋아보여요!";
-        change = 2;
+      const puppy = document.getElementById("puppy-img");
+      if (effect > 0) {
+        puppy.classList.add("happy-wiggle");
+        setTimeout(() => puppy.classList.remove("happy-wiggle"), 1000);
       }
 
-      mood += change;
-      if (mood > 10) mood = 10;
+      document.getElementById("event-text").innerText = `👉 ${effect > 0 ? '기분이 좋아졌어요!' : '기분이 나빠졌어요...'}`;
+      document.getElementById("event-options").innerHTML = '';
 
-      document.getElementById("mood").textContent = getMoodEmoji();
-      panel.innerHTML = text;
-
+      updateStatus();
       setTimeout(() => {
-        panel.innerHTML = "";
-        inEvent = false;
-        startEventLoop();
-        ageTimer = setInterval(() => {
-          age++;
-          updateDogInfo();
-          updateGrowthStage();
-        }, 20000);
+        document.getElementById("event-text").innerText = '';
+        isEventActive = false;
       }, 2000);
     }
 
-    function getMoodEmoji() {
-      if (mood >= 8) return "🥰";
-      if (mood >= 5) return "😊";
-      if (mood >= 3) return "😐";
-      return "😢";
+    function directInteraction(type) {
+      const effects = {
+        '쓰다듬기': 1,
+        '귀 냄새 맡기': 0,
+        '발 냄새 맡기': -1,
+        '껴안기': 2
+      };
+      handleEventChoice(effects[type]);
     }
 
-    function dogWagTail() {
-      const img = document.getElementById("dogImage");
-      img.style.transition = "transform 0.1s";
-      img.style.transform = "rotate(5deg)";
-      setTimeout(() => img.style.transform = "rotate(-5deg)", 100);
-      setTimeout(() => img.style.transform = "rotate(0deg)", 200);
+    function checkGrowth() {
+      const stage = getGrowthStage();
+      if (!growthLog.includes(stage)) {
+        growthLog.push(stage);
+        showGrowthCelebrate(stage);
+      }
     }
 
-    function endGame() {
+    function showGrowthCelebrate(stage) {
+      isGrowing = true;
+      updatePuppyImage();
+      updateStatus();
+      const text = ["🍼 신생아기!", "🐾 청소년기!", "🦴 성견기!", "🧓 노령기!"][stage];
+      const celebrate = document.getElementById("celebrate");
+      celebrate.innerText = `${text} 성장했어요!`;
+      celebrate.style.display = "block";
+
+      const puppy = document.getElementById("puppy-img");
+      puppy.classList.add("grow-bounce");
+
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "button";
+      nextBtn.innerText = "🎉 축하해";
+      nextBtn.onclick = () => {
+        celebrate.style.display = "none";
+        nextBtn.remove();
+        puppy.classList.remove("grow-bounce");
+        isGrowing = false;
+      };
+      celebrate.appendChild(nextBtn);
+    }
+
+    function showAlbum() {
+      const puppy = document.getElementById("puppy-img");
+      const wrapper = document.getElementById("game-wrapper");
+      const timer = document.getElementById("eventTimer");
+      const status = document.getElementById("statusBar");
+      const interactionToggle = document.querySelector(".interaction-toggle");
+      const panel = document.getElementById("interactionPanel");
+      const eventText = document.getElementById("event-text");
+      const eventOptions = document.getElementById("event-options");
+
+      wrapper.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <h2>📸 추억 앨범</h2>
+          <p>${puppyName}이가 예쁘고 멋지게 자랐어요!</p>
+          <img src="${puppy.src}" style="width: 200px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.2);" />
+          <br /><br />
+          <button class="button" onclick="location.reload()">다시 시작하기</button>
+        </div>
+      `;
+
+      // 배경음 정지
+      document.getElementById("bgm").pause();
+
+      // 인터벌 정지
       clearInterval(ageTimer);
       clearInterval(eventTimer);
-
-      document.getElementById("gameScreen").style.display = "none";
-      document.getElementById("albumScreen").style.display = "flex";
-      document.getElementById("albumMessage").innerText = `🎉 ${dogName}이가 예쁘고 멋지게 자랐어요!`;
-      document.getElementById("finalDogImage").src = dogImages[selectedBreed]["old"];
+      clearInterval(albumTimer);
     }
+
+    // 귀여운 애니메이션 효과를 위한 스타일 삽입
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes wiggle {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(5deg); }
+        50% { transform: rotate(-5deg); }
+        75% { transform: rotate(5deg); }
+        100% { transform: rotate(0deg); }
+      }
+      .happy-wiggle {
+        animation: wiggle 1s ease;
+      }
+
+      @keyframes grow {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+      .grow-bounce {
+        animation: grow 1s ease;
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
