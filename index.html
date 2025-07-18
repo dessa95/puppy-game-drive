@@ -40,134 +40,158 @@
     audio {
       display: none;
     }
+    .emotion-icon {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 36px;
+    }
   </style>
 </head>
 <body>
   <h1>나만의 강아지 키우기 🐶</h1>
   <div id="game-wrapper">
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="emotion-icon" id="emotion">😐</div>
   </div>
   <audio id="bgm" autoplay loop>
     <source src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" type="audio/mp3" />
   </audio>
-
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let dog = null;
-    let stage = 0;
-    let age = 0;
-    let frame = 0;
-    let breed = null;
-    const images = {};
-    const stages = ['신생아기', '청소년기', '성년기', '노령기'];
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const emotionEl = document.getElementById("emotion");
 
-    const breeds = {
-      '골든 리트리버': ['g1', 'g2', 'g3', 'g4'],
-      '비숑 프리제': ['b1', 'b2', 'b3', 'b4']
+    let puppyType = "g"; // g = 골든 리트리버, b = 비숑 프리제
+    let puppyStage = 1;  // 1: 신생아, 2: 청소년, 3: 성년, 4: 노령기
+    let seconds = 0;
+
+    const images = {};
+    const imageNames = ["g1", "g2", "g3", "g4", "b1", "b2", "b3", "b4"];
+
+    let gameState = {
+      hunger: 50,
+      intimacy: 50,
+      age: 0,
     };
 
+    let currentEvent = null;
+    let isEventActive = false;
+
     function preloadImages(callback) {
-      let loaded = 0, total = 8;
-      const keys = ['g1','g2','g3','g4','b1','b2','b3','b4'];
-      keys.forEach(key => {
+      let loaded = 0;
+      imageNames.forEach(name => {
         const img = new Image();
-        img.src = `https://dessa95.github.io/puppy-game-drive/${key}.png`;
+        img.src = `https://dessa95.github.io/puppy-game-drive/${name}.png`;
         img.onload = () => {
-          images[key] = img;
+          images[name] = img;
           loaded++;
-          if (loaded === total) callback();
+          if (loaded === imageNames.length) callback();
         };
       });
     }
 
-    function drawScreen() {
-      ctx.fillStyle = '#fefae0';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function getImageKey() {
+      return puppyType + puppyStage;
+    }
 
-      if (!breed) {
-        ctx.fillStyle = '#2a9d8f';
-        ctx.font = 'bold 36px Pretendard';
-        ctx.textAlign = 'center';
-        ctx.fillText('강아지를 선택하세요', canvas.width/2, 100);
-
-        const options = Object.keys(breeds);
-        options.forEach((b, i) => {
-          ctx.fillStyle = '#ffcb77';
-          ctx.fillRect(250, 200 + i*100, 300, 60);
-          ctx.strokeStyle = '#d62828';
-          ctx.strokeRect(250, 200 + i*100, 300, 60);
-          ctx.fillStyle = '#000';
-          ctx.fillText(b, canvas.width/2, 240 + i*100);
-        });
-      } else if (!dog) {
-        ctx.fillStyle = '#2a9d8f';
-        ctx.font = 'bold 28px Pretendard';
-        ctx.fillText('이름을 입력하세요 (Enter)', canvas.width/2, 300);
-        ctx.fillStyle = '#000';
-        ctx.fillText(dogName + '|', canvas.width/2, 360);
-      } else {
-        // draw background
-        ctx.fillStyle = '#e9c46a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#f4a261';
-        ctx.fillRect(0, 450, canvas.width, 150);
-
-        // draw dog
-        const imgKey = breeds[breed][stage];
-        const img = images[imgKey];
-        ctx.drawImage(img, canvas.width/2 - 100, canvas.height/2 - 150, 200, 200);
-
-        // info
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(20, 20, 300, 100);
-        ctx.strokeStyle = '#000';
-        ctx.strokeRect(20, 20, 300, 100);
-        ctx.fillStyle = '#000';
-        ctx.font = '20px Pretendard';
-        ctx.fillText(`이름: ${dogName}`, 30, 50);
-        ctx.fillText(`나이: ${age}살 (${stages[stage]})`, 30, 80);
+    function drawPuppy() {
+      const img = images[getImageKey()];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (img) {
+        ctx.drawImage(img, 200, 100, 400, 400);
       }
     }
 
-    let dogName = '';
+    function updateEmotion() {
+      const { hunger, intimacy } = gameState;
+      if (hunger < 30 || intimacy < 30) {
+        emotionEl.textContent = "😢";
+      } else if (hunger > 70 && intimacy > 70) {
+        emotionEl.textContent = "😄";
+      } else {
+        emotionEl.textContent = "😐";
+      }
+    }
+
+    function applyChoice(choice) {
+      gameState[choice.stat] += choice.value;
+      if (choice.stat2) gameState[choice.stat2] += choice.value2 || 0;
+      gameState.hunger = Math.max(0, Math.min(100, gameState.hunger));
+      gameState.intimacy = Math.max(0, Math.min(100, gameState.intimacy));
+      updateEmotion();
+      currentEvent = null;
+      isEventActive = false;
+    }
+
+    function drawEvent(event) {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "24px Pretendard";
+      ctx.fillText(event.text, 40, 100);
+      event.choices.forEach((choice, i) => {
+        ctx.fillText(`${i + 1}. ${choice.text}`, 60, 160 + i * 40);
+      });
+    }
+
+    function triggerEvent() {
+      const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+      currentEvent = event;
+      isEventActive = true;
+      drawEvent(event);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (!isEventActive || !currentEvent) return;
+      const index = parseInt(e.key);
+      if (index === 1 || index === 2) {
+        applyChoice(currentEvent.choices[index - 1]);
+      }
+    });
 
     function gameLoop() {
-      frame++;
-      if (dog) {
-        if (frame % 600 === 0) {
-          age++;
-          if (age === 2) stage = 1;
-          else if (age === 5) stage = 2;
-          else if (age === 10) stage = 3;
-        }
+      seconds++;
+      if (seconds % 10 === 0) gameState.age += 1;
+
+      if (gameState.age === 5) puppyStage = 2;
+      else if (gameState.age === 10) puppyStage = 3;
+      else if (gameState.age === 15) puppyStage = 4;
+
+      if (!isEventActive && seconds % 20 === 0) {
+        triggerEvent();
       }
-      drawScreen();
-      requestAnimationFrame(gameLoop);
+
+      if (!isEventActive) drawPuppy();
+    }
+    const randomEvents = [
+      { text: "산책 갈 시간이에요!", choices: [{ text: "신나게 달린다", stat: 'intimacy', value: 10 }, { text: "천천히 걷는다", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#b4d4ff') },
+      { text: "목욕할 시간! 물이 싫어요!", choices: [{ text: "부드럽게 씻긴다", stat: 'intimacy', value: 5 }, { text: "간식을 주며 달랜다", stat: 'hunger', value: 10, stat2: 'intimacy', value2: 2 }], anim: () => flashCanvas('#d0f0fd') },
+      { text: "배가 고파요! 밥 주세요!", choices: [{ text: "사료를 준다", stat: 'hunger', value: 20 }, { text: "특식을 준다", stat: 'hunger', value: 30, stat2: 'intimacy', value2: 5 }], anim: () => flashCanvas('#fff1bd') },
+      { text: "놀아주세요!", choices: [{ text: "공놀이를 한다", stat: 'intimacy', value: 15 }, { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }], anim: () => flashCanvas('#ffe2f1') },
+      { text: "으앙! 병원은 무서워요!", choices: [{ text: "용감하게 주사 맞기", stat: 'intimacy', value: -5 }, { text: "칭찬하며 달래주기", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#ffcccc') },
+      { text: "새로운 개인기를 배울래요!", choices: [{ text: "'손!' 가르치기", stat: 'intimacy', value: 10 }, { text: "'코!' 가르치기", stat: 'intimacy', value: 10 }], anim: () => flashCanvas('#f0fff0') },
+      { text: "실수했어요... 집이 엉망이 됐어요.", choices: [{ text: "괜찮아, 같이 치우자", stat: 'intimacy', value: 7 }, { text: "조용히 혼낸다", stat: 'intimacy', value: -10 }], anim: () => flashCanvas('#eaeaea') },
+      { text: "공원에서 새로운 친구를 만났어요!", choices: [{ text: "같이 놀게 한다", stat: 'intimacy', value: 10 }, { text: "조심하라고 부른다", stat: 'intimacy', value: -2 }], anim: () => flashCanvas('#ccffcc') },
+      { text: "숨겨둔 간식을 찾았어요! 먹어도 되나요?", choices: [{ text: "당연하지! 맛있게 먹어", stat: 'hunger', value: 15, stat2: 'intimacy', value2: 5 }, { text: "안돼! 이따 밥 먹어야지", stat: 'hunger', value: -5 }], anim: () => flashCanvas('#ffe4b5') },
+      { text: "천둥 소리에 놀랐어요!", choices: [{ text: "꼭 안아준다", stat: 'intimacy', value: 8 }, { text: "조용한 방으로 데려간다", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#a0c4ff') },
+      { text: "훈련소에서 초대장이 왔어요!", choices: [{ text: "참여해서 훈련 받는다", stat: 'intimacy', value: 12 }, { text: "너무 어려울 것 같아 패스", stat: 'intimacy', value: -2 }], anim: () => flashCanvas('#d0e6a5') },
+      { text: "아기 고양이를 발견했어요.", choices: [{ text: "집으로 데려온다", stat: 'intimacy', value: 10 }, { text: "그냥 지나친다", stat: 'intimacy', value: -3 }], anim: () => flashCanvas('#ffc2e0') },
+      { text: "생일이에요! 특별한 하루!", choices: [{ text: "파티를 열어준다", stat: 'intimacy', value: 15 }, { text: "간식을 준다", stat: 'hunger', value: 20, stat2: 'intimacy', value2: 10 }], anim: () => flashCanvas('#ffe6cc') },
+      { text: "아파 보여요...", choices: [{ text: "병원에 데려간다", stat: 'intimacy', value: 5 }, { text: "쉬게 한다", stat: 'hunger', value: -10 }], anim: () => flashCanvas('#f8d7da') },
+      { text: "창밖을 바라보며 멍하니 있어요.", choices: [{ text: "같이 앉는다", stat: 'intimacy', value: 6 }, { text: "산책 가자고 한다", stat: 'intimacy', value: 8 }], anim: () => flashCanvas('#dee2ff') }
+    ];
+
+    function flashCanvas(color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      setTimeout(drawPuppy, 400);
     }
 
-    canvas.addEventListener('click', (e) => {
-      if (!breed) {
-        const y = e.offsetY;
-        if (y > 200 && y < 260) breed = '골든 리트리버';
-        else if (y > 300 && y < 360) breed = '비숑 프리제';
-      }
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (breed && !dog) {
-        if (e.key === 'Enter' && dogName.length > 0) {
-          dog = { name: dogName, breed };
-        } else if (e.key === 'Backspace') {
-          dogName = dogName.slice(0, -1);
-        } else if (e.key.length === 1 && dogName.length < 10) {
-          dogName += e.key;
-        }
-      }
-    });
-
     preloadImages(() => {
-      gameLoop();
+      drawPuppy();
+      updateEmotion();
+      setInterval(gameLoop, 1000);
     });
   </script>
 </body>
