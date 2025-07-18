@@ -180,10 +180,17 @@
 
     function drawDog() {
         if (!dog) return;
-        const currentLifecycleStage = lifecycle.slice().reverse().find(s => dog.age >= s.age);
-        if (!currentLifecycleStage) return;
+        let stageInfo = lifecycle[0];
+        for(const stage of lifecycle) {
+            if (dog.age >= stage.age) {
+                stageInfo = stage;
+            } else {
+                break;
+            }
+        }
+        dog.stage = stageInfo.stage;
         
-        const imageName = breeds[dog.breed].images[currentLifecycleStage.stage];
+        const imageName = breeds[dog.breed].images[dog.stage];
         const img = images[imageName];
         if (!img || !img.complete || img.naturalHeight === 0) {
             ctx.fillStyle = '#d90429';
@@ -221,8 +228,6 @@
         ctx.fillStyle = '#5d4037';
         ctx.font = 'bold 22px "Pretendard", "Malgun Gothic", sans-serif';
         ctx.textAlign = 'left';
-        const currentLifecycleStage = lifecycle.slice().reverse().find(s => dog.age >= s.age);
-        dog.stage = currentLifecycleStage ? currentLifecycleStage.stage : '알 수 없음';
         ctx.fillText(`🐾 ${dog.name}`, 25, 45);
         ctx.font = '18px "Pretendard", "Malgun Gothic", sans-serif';
         ctx.fillText(`🎂 ${dog.age}살 (${dog.stage})`, 25, 75);
@@ -347,14 +352,17 @@
             dogNameInput += e.key;
         }
     }
-    async function init() {
-        try {
-            canvas.addEventListener('click', handleCanvasClick);
-            canvas.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('keydown', handleKeyDown);
-            
-            const assetResults = await loadAssets();
-            console.log("모든 에셋 로딩 시도 완료.");
+    
+    // [FIX] init 함수를 async/await 대신 .then()을 사용하여 로딩 완료 후 게임을 시작하도록 수정
+    function init() {
+        console.log("init() 시작");
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('keydown', handleKeyDown);
+        
+        console.log("loadAssets() 호출");
+        loadAssets().then(assetResults => {
+            console.log("모든 에셋 로딩 시도 완료, .then() 블록 진입");
 
             const failedAssets = assetResults.filter(r => r.status === 'error');
             if (failedAssets.length > 0) {
@@ -362,16 +370,24 @@
             }
             
             loadingScreen.classList.add('hidden');
+            console.log("로딩 화면 숨김");
+
             gameState = 'START_SCREEN';
+            console.log("gameState를 START_SCREEN으로 설정");
+
             gameLoop();
-        } catch (error) {
+            console.log("gameLoop() 최초 호출");
+
+        }).catch(error => {
             console.error("초기화 중 오류 발생:", error);
             errorMessage = `게임 초기화 오류: ${error.message}. 콘솔을 확인해주세요.`;
             loadingScreen.innerHTML = `<p>${errorMessage}</p>`;
             gameState = 'ERROR';
+            // 오류 발생 시에도 gameLoop를 호출하여 오류 메시지를 캔버스에 표시
             gameLoop();
-        }
+        });
     }
+
     init();
 </script>
 </body>
