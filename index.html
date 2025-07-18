@@ -98,7 +98,7 @@
 
     <div id="startScreen">
       <h1>🐶 강아지 육성 게임</h1>
-      <button class="btn" onclick="showBreedSelect()">게임 시작</button>
+      <button class="btn" onclick="showBreedSelect(); this.style.display='none';">게임 시작</button>
     </div>
 
     <div id="breedSelectScreen" style="display:none;">
@@ -112,6 +112,7 @@
       <input type="text" id="dogNameInput" placeholder="이름을 입력하세요" />
       <button class="btn" onclick="startGame()">게임 시작하기</button>
     </div>
+
     <div id="gameScreen">
       <div id="statusPanel">
         <h3 id="dogInfo">이름: - / 나이: 0살</h3>
@@ -135,7 +136,7 @@
       <img id="finalDogImage" src="" alt="강아지 성장 완료 이미지" />
       <button class="btn" onclick="location.reload()">다시 시작하기</button>
     </div>
-  </div>
+  </div> <!-- gameContainer 끝 -->
 
   <script>
     const dogImages = {
@@ -156,7 +157,7 @@
     let selectedBreed = "";
     let dogName = "";
     let age = 0;
-    let mood = 5; // 기본값: 5 / 0~10
+    let mood = 5;
     let growthStage = "신생아기";
     let ageTimer = null;
     let eventTimer = null;
@@ -189,7 +190,7 @@
         age++;
         updateDogInfo();
         updateGrowthStage();
-      }, 20000); // 20초마다 1살 증가
+      }, 20000); // 20초마다 나이 1 증가
 
       startEventLoop();
     }
@@ -227,243 +228,151 @@
       updateDogImage();
       showStageEffect(label);
     }
-<audio id="bgm" src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" autoplay loop></audio>
 
-<script>
-  const dogImages = {
-    bichon: {
-      baby: "https://dessa95.github.io/puppy-game-drive/b1.png",
-      teen: "https://dessa95.github.io/puppy-game-drive/b2.png",
-      adult: "https://dessa95.github.io/puppy-game-drive/b3.png",
-      old: "https://dessa95.github.io/puppy-game-drive/b4.png"
-    },
-    golden: {
-      baby: "https://dessa95.github.io/puppy-game-drive/g1.png",
-      teen: "https://dessa95.github.io/puppy-game-drive/g2.png",
-      adult: "https://dessa95.github.io/puppy-game-drive/g3.png",
-      old: "https://dessa95.github.io/puppy-game-drive/g4.png"
+    function showStageEffect(label) {
+      const panel = document.getElementById("eventPanel");
+      panel.innerHTML = `🎉 ${label}로 성장했어요!`;
+      panel.style.animation = "pulse 1s ease";
+      setTimeout(() => {
+        panel.innerHTML = "";
+        panel.style.animation = "";
+      }, 2000);
     }
-  };
-
-  let selectedBreed = "";
-  let dogName = "";
-  let age = 0;
-  let mood = 5;
-  let growthStage = "신생아기";
-  let ageTimer = null;
-  let eventTimer = null;
-  let inEvent = false;
-
-  function showBreedSelect() {
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("breedSelectScreen").style.display = "flex";
-  }
-
-  function selectBreed(breed) {
-    selectedBreed = breed;
-    document.getElementById("breedSelectScreen").style.display = "none";
-    document.getElementById("nameInputScreen").style.display = "flex";
-  }
-
-  function startGame() {
-    dogName = document.getElementById("dogNameInput").value.trim();
-    if (!dogName) {
-      alert("이름을 입력해주세요!");
-      return;
+    function startEventLoop() {
+      eventTimer = setInterval(() => {
+        if (!inEvent) {
+          triggerRandomEvent();
+        }
+      }, 5000); // 5초마다 랜덤 이벤트 체크
     }
 
-    document.getElementById("nameInputScreen").style.display = "none";
-    document.getElementById("gameScreen").style.display = "flex";
-    updateDogInfo();
-    updateDogImage();
+    function triggerRandomEvent() {
+      inEvent = true;
+      clearInterval(ageTimer); // 이벤트 중 나이 증가 일시 중지
 
-    ageTimer = setInterval(() => {
-      age++;
-      updateDogInfo();
-      updateGrowthStage();
-    }, 20000); // 20초마다 나이 1살 증가
+      const events = [
+        {
+          text: "강아지가 졸린 눈으로 널 바라봐요. 재워줄까요?",
+          options: ["재워준다", "그냥 둔다"],
+          effects: [1, -1]
+        },
+        {
+          text: "강아지가 장난감을 갖고 와요. 놀아줄까요?",
+          options: ["같이 논다", "무시한다"],
+          effects: [2, -2]
+        },
+        {
+          text: "산책을 가자고 짖고 있어요!",
+          options: ["바로 나간다", "피곤하다고 한다"],
+          effects: [2, -2]
+        },
+        {
+          text: "밥그릇을 발로 툭 쳐요. 배가 고픈가봐요!",
+          options: ["밥을 준다", "무시한다"],
+          effects: [1, -1]
+        },
+        {
+          text: "우울한 표정으로 당신을 쳐다봐요...",
+          options: ["안아준다", "무시한다"],
+          effects: [2, -2]
+        }
+      ];
 
-    startEventLoop();
-  }
-
-  function updateDogInfo() {
-    document.getElementById("dogInfo").textContent = `이름: ${dogName} / 나이: ${age}살`;
-  }
-
-  function updateDogImage() {
-    let stage = getStageKey();
-    document.getElementById("dogImage").src = dogImages[selectedBreed][stage];
-  }
-
-  function getStageKey() {
-    if (age < 2) return "baby";
-    if (age < 6) return "teen";
-    if (age < 10) return "adult";
-    return "old";
-  }
-
-  function updateGrowthStage() {
-    const stage = getStageKey();
-    let label = "";
-    switch (stage) {
-      case "baby": label = "신생아기"; break;
-      case "teen": label = "청소년기"; break;
-      case "adult": label = "성년기"; break;
-      case "old":
-        label = "노령기";
-        setTimeout(() => endGame(), 60000); // 노령기 진입 후 1분 뒤 종료
-        break;
+      const event = events[Math.floor(Math.random() * events.length)];
+      const panel = document.getElementById("eventPanel");
+      panel.innerHTML = `
+        ${event.text}<br/>
+        <button class="btn" onclick="resolveEvent(${event.effects[0]})">${event.options[0]}</button>
+        <button class="btn" onclick="resolveEvent(${event.effects[1]})">${event.options[1]}</button>
+      `;
     }
-    growthStage = label;
-    document.getElementById("growthStage").textContent = growthStage;
-    updateDogImage();
-    showStageEffect(label);
-  }
 
-  function showStageEffect(label) {
-    const panel = document.getElementById("eventPanel");
-    panel.innerHTML = `🎉 ${label}로 성장했어요!`;
-    panel.style.animation = "pulse 1s ease";
-    setTimeout(() => {
-      panel.innerHTML = "";
-      panel.style.animation = "";
-    }, 2000);
-  }
-  function startEventLoop() {
-    eventTimer = setInterval(() => {
-      if (!inEvent) {
-        triggerRandomEvent();
+    function resolveEvent(effect) {
+      mood += effect;
+      if (mood > 10) mood = 10;
+      if (mood < 0) mood = 0;
+
+      document.getElementById("mood").textContent = getMoodEmoji();
+
+      const panel = document.getElementById("eventPanel");
+      panel.innerHTML = "🐶 강아지가 반응을 보였어요!";
+      setTimeout(() => {
+        panel.innerHTML = "";
+        inEvent = false;
+        startEventLoop();
+        ageTimer = setInterval(() => {
+          age++;
+          updateDogInfo();
+          updateGrowthStage();
+        }, 20000);
+      }, 2000);
+    }
+
+    function triggerEvent(type) {
+      if (inEvent) return;
+
+      inEvent = true;
+      clearInterval(ageTimer);
+      clearInterval(eventTimer);
+
+      const panel = document.getElementById("eventPanel");
+      let text = "";
+      let change = 0;
+
+      if (type === "pet") {
+        text = "강아지를 쓰다듬었어요. 기분이 좋아졌어요!";
+        change = 1;
+        dogWagTail();
+      } else if (type === "feed") {
+        text = "강아지가 맛있게 간식을 먹었어요!";
+        change = 2;
+      } else if (type === "walk") {
+        text = "산책을 다녀왔어요. 기분이 한결 좋아보여요!";
+        change = 2;
       }
-    }, 5000); // 5초마다 랜덤 이벤트 체크
-  }
 
-  function triggerRandomEvent() {
-    inEvent = true;
-    clearInterval(ageTimer); // 이벤트 중 나이 증가 일시 중지
+      mood += change;
+      if (mood > 10) mood = 10;
 
-    const events = [
-      {
-        text: "강아지가 졸린 눈으로 널 바라봐요. 재워줄까요?",
-        options: ["재워준다", "그냥 둔다"],
-        effects: [1, -1]
-      },
-      {
-        text: "강아지가 장난감을 갖고 와요. 놀아줄까요?",
-        options: ["같이 논다", "무시한다"],
-        effects: [2, -2]
-      },
-      {
-        text: "산책을 가자고 짖고 있어요!",
-        options: ["바로 나간다", "피곤하다고 한다"],
-        effects: [2, -2]
-      },
-      {
-        text: "밥그릇을 발로 툭 쳐요. 배가 고픈가봐요!",
-        options: ["밥을 준다", "무시한다"],
-        effects: [1, -1]
-      },
-      {
-        text: "우울한 표정으로 당신을 쳐다봐요...",
-        options: ["안아준다", "무시한다"],
-        effects: [2, -2]
-      }
-    ];
+      document.getElementById("mood").textContent = getMoodEmoji();
+      panel.innerHTML = text;
 
-    const event = events[Math.floor(Math.random() * events.length)];
-    const panel = document.getElementById("eventPanel");
-    panel.innerHTML = `
-      ${event.text}<br/>
-      <button class="btn" onclick="resolveEvent(${event.effects[0]})">${event.options[0]}</button>
-      <button class="btn" onclick="resolveEvent(${event.effects[1]})">${event.options[1]}</button>
-    `;
-  }
-
-  function resolveEvent(effect) {
-    mood += effect;
-    if (mood > 10) mood = 10;
-    if (mood < 0) mood = 0;
-
-    document.getElementById("mood").textContent = getMoodEmoji();
-
-    const panel = document.getElementById("eventPanel");
-    panel.innerHTML = "🐶 강아지가 반응을 보였어요!";
-    setTimeout(() => {
-      panel.innerHTML = "";
-      inEvent = false;
-      startEventLoop();
-      ageTimer = setInterval(() => {
-        age++;
-        updateDogInfo();
-        updateGrowthStage();
-      }, 20000);
-    }, 2000);
-  }
-
-  function triggerEvent(type) {
-    if (inEvent) return;
-
-    inEvent = true;
-    clearInterval(ageTimer);
-    clearInterval(eventTimer);
-
-    const panel = document.getElementById("eventPanel");
-    let text = "";
-    let change = 0;
-
-    if (type === "pet") {
-      text = "강아지를 쓰다듬었어요. 기분이 좋아졌어요!";
-      change = 1;
-      dogWagTail();
-    } else if (type === "feed") {
-      text = "강아지가 맛있게 간식을 먹었어요!";
-      change = 2;
-    } else if (type === "walk") {
-      text = "산책을 다녀왔어요. 기분이 한결 좋아보여요!";
-      change = 2;
+      setTimeout(() => {
+        panel.innerHTML = "";
+        inEvent = false;
+        startEventLoop();
+        ageTimer = setInterval(() => {
+          age++;
+          updateDogInfo();
+          updateGrowthStage();
+        }, 20000);
+      }, 2000);
     }
 
-    mood += change;
-    if (mood > 10) mood = 10;
+    function getMoodEmoji() {
+      if (mood >= 8) return "🥰";
+      if (mood >= 5) return "😊";
+      if (mood >= 3) return "😐";
+      return "😢";
+    }
 
-    document.getElementById("mood").textContent = getMoodEmoji();
-    panel.innerHTML = text;
+    function dogWagTail() {
+      const img = document.getElementById("dogImage");
+      img.style.transition = "transform 0.1s";
+      img.style.transform = "rotate(5deg)";
+      setTimeout(() => img.style.transform = "rotate(-5deg)", 100);
+      setTimeout(() => img.style.transform = "rotate(0deg)", 200);
+    }
 
-    setTimeout(() => {
-      panel.innerHTML = "";
-      inEvent = false;
-      startEventLoop();
-      ageTimer = setInterval(() => {
-        age++;
-        updateDogInfo();
-        updateGrowthStage();
-      }, 20000);
-    }, 2000);
-  }
+    function endGame() {
+      clearInterval(ageTimer);
+      clearInterval(eventTimer);
 
-  function getMoodEmoji() {
-    if (mood >= 8) return "🥰";
-    if (mood >= 5) return "😊";
-    if (mood >= 3) return "😐";
-    return "😢";
-  }
-
-  function dogWagTail() {
-    const img = document.getElementById("dogImage");
-    img.style.transition = "transform 0.1s";
-    img.style.transform = "rotate(5deg)";
-    setTimeout(() => img.style.transform = "rotate(-5deg)", 100);
-    setTimeout(() => img.style.transform = "rotate(0deg)", 200);
-  }
-
-  function endGame() {
-    clearInterval(ageTimer);
-    clearInterval(eventTimer);
-
-    document.getElementById("gameScreen").style.display = "none";
-    document.getElementById("albumScreen").style.display = "flex";
-    document.getElementById("albumMessage").innerText = `🎉 ${dogName}이가 예쁘고 멋지게 자랐어요!`;
-    document.getElementById("finalDogImage").src = dogImages[selectedBreed]["old"];
-  }
-</script>
+      document.getElementById("gameScreen").style.display = "none";
+      document.getElementById("albumScreen").style.display = "flex";
+      document.getElementById("albumMessage").innerText = `🎉 ${dogName}이가 예쁘고 멋지게 자랐어요!`;
+      document.getElementById("finalDogImage").src = dogImages[selectedBreed]["old"];
+    }
+  </script>
 </body>
 </html>
