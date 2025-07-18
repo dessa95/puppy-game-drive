@@ -3,196 +3,319 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>강아지 키우기</title>
+  <title>귀염뽀짝 강아지 키우기</title>
   <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
     body {
       margin: 0;
-      font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-      background-color: #fefae0;
+      font-family: 'Gowun Dodum', sans-serif;
+      background-color: #fff8f0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
     }
     h1 {
-      margin: 20px;
-      font-size: 2.5rem;
-      color: #d4a373;
+      margin-top: 30px;
+      font-size: 2.8rem;
+      color: #ff914d;
     }
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .active {
+      display: flex !important;
+    }
+    .button {
+      padding: 12px 24px;
+      margin: 10px;
+      font-size: 1.1rem;
+      background: #ffcdcd;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: background 0.2s;
+    }
+    .button:hover {
+      background: #ffa4a4;
+    }
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+
     #game-wrapper {
       width: 95%;
-      max-width: 800px;
+      max-width: 820px;
       aspect-ratio: 4 / 3;
       position: relative;
-      background: #ffffff;
+      background: #fff;
       border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      border: 10px solid #ffffff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      margin-top: 20px;
     }
     canvas {
       width: 100%;
       height: 100%;
       display: block;
-      cursor: pointer;
     }
-    audio {
-      display: none;
-    }
-    .emotion-icon {
+
+    /* 🐾 상태창 */
+    .status-bar {
       position: absolute;
-      bottom: 10px;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 15px;
+      border-radius: 15px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      border: 1px solid #ffdad5;
+    }
+    .event-timer {
+      position: absolute;
+      top: 10px;
       right: 10px;
-      font-size: 36px;
+      background: rgba(255, 243, 234, 0.95);
+      padding: 10px 15px;
+      border-radius: 15px;
+      font-size: 0.95rem;
+      color: #cc5c00;
+      border: 1px dashed #ffa65e;
+    }
+
+    /* 🎉 축하 이펙트 */
+    .celebrate {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.2rem;
+      background: #fff3cd;
+      color: #d9480f;
+      padding: 15px 25px;
+      border: 2px solid #ffd6a5;
+      border-radius: 20px;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+      z-index: 999;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>나만의 강아지 키우기 🐶</h1>
-  <div id="game-wrapper">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div class="emotion-icon" id="emotion">😐</div>
+  <h1>🐶 귀염뽀짝 강아지 키우기</h1>
+
+  <!-- 🎮 시작 화면 -->
+  <div id="start-screen" class="screen active">
+    <p>강아지 이름을 지어주세요:</p>
+    <input type="text" id="puppy-name" placeholder="예: 뭉치" />
+    <p>강아지 품종을 선택하세요:</p>
+    <div>
+      <button class="button" onclick="selectBreed('g')">골든 리트리버</button>
+      <button class="button" onclick="selectBreed('b')">비숑 프리제</button>
+    </div>
   </div>
-  <audio id="bgm" autoplay loop>
-    <source src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" type="audio/mp3" />
-  </audio>
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const emotionEl = document.getElementById("emotion");
 
-    let puppyType = "g"; // g = 골든 리트리버, b = 비숑 프리제
-    let puppyStage = 1;  // 1: 신생아, 2: 청소년, 3: 성년, 4: 노령기
-    let seconds = 0;
+  <!-- 🐾 게임 화면 -->
+  <div id="game-screen" class="screen">
+    <div id="game-wrapper">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div class="status-bar" id="statusBar"></div>
+      <div class="event-timer" id="eventTimer">다음 이벤트까지: 20초</div>
+      <div class="celebrate" id="celebrate">🎉 성장했어요!</div>
+    </div>
+    <audio id="bgm" loop>
+      <source src="https://dessa95.github.io/puppy-game-drive/bgm.mp3" type="audio/mp3" />
+    </audio>
+  </div>
+<script>
+  let gameState = {
+    name: '',
+    breed: '',
+    age: 0,
+    hunger: 50,
+    intimacy: 50,
+    stage: 1, // 1: 신생아, 2: 청소년, 3: 성년, 4: 노령
+    timer: 20,
+    imageKey: '',
+  };
 
-    const images = {};
-    const imageNames = ["g1", "g2", "g3", "g4", "b1", "b2", "b3", "b4"];
+  const images = {};
+  const breedImages = {
+    g: ['g1', 'g2', 'g3', 'g4'],
+    b: ['b1', 'b2', 'b3', 'b4']
+  };
 
-    let gameState = {
-      hunger: 50,
-      intimacy: 50,
-      age: 0,
-    };
-
-    let currentEvent = null;
-    let isEventActive = false;
-
-    function preloadImages(callback) {
-      let loaded = 0;
-      imageNames.forEach(name => {
-        const img = new Image();
-        img.src = `https://dessa95.github.io/puppy-game-drive/${name}.png`;
-        img.onload = () => {
-          images[name] = img;
-          loaded++;
-          if (loaded === imageNames.length) callback();
-        };
-      });
+  function selectBreed(breed) {
+    const nameInput = document.getElementById('puppy-name');
+    const name = nameInput.value.trim();
+    if (name === '') {
+      alert("이름을 입력해주세요!");
+      return;
     }
 
-    function getImageKey() {
-      return puppyType + puppyStage;
-    }
-
-    function drawPuppy() {
-      const img = images[getImageKey()];
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (img) {
-        ctx.drawImage(img, 200, 100, 400, 400);
-      }
-    }
-
-    function updateEmotion() {
-      const { hunger, intimacy } = gameState;
-      if (hunger < 30 || intimacy < 30) {
-        emotionEl.textContent = "😢";
-      } else if (hunger > 70 && intimacy > 70) {
-        emotionEl.textContent = "😄";
-      } else {
-        emotionEl.textContent = "😐";
-      }
-    }
-
-    function applyChoice(choice) {
-      gameState[choice.stat] += choice.value;
-      if (choice.stat2) gameState[choice.stat2] += choice.value2 || 0;
-      gameState.hunger = Math.max(0, Math.min(100, gameState.hunger));
-      gameState.intimacy = Math.max(0, Math.min(100, gameState.intimacy));
-      updateEmotion();
-      currentEvent = null;
-      isEventActive = false;
-    }
-
-    function drawEvent(event) {
-      ctx.fillStyle = "rgba(0,0,0,0.7)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      ctx.font = "24px Pretendard";
-      ctx.fillText(event.text, 40, 100);
-      event.choices.forEach((choice, i) => {
-        ctx.fillText(`${i + 1}. ${choice.text}`, 60, 160 + i * 40);
-      });
-    }
-
-    function triggerEvent() {
-      const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
-      currentEvent = event;
-      isEventActive = true;
-      drawEvent(event);
-    }
-
-    document.addEventListener("keydown", (e) => {
-      if (!isEventActive || !currentEvent) return;
-      const index = parseInt(e.key);
-      if (index === 1 || index === 2) {
-        applyChoice(currentEvent.choices[index - 1]);
-      }
-    });
-
-    function gameLoop() {
-      seconds++;
-      if (seconds % 10 === 0) gameState.age += 1;
-
-      if (gameState.age === 5) puppyStage = 2;
-      else if (gameState.age === 10) puppyStage = 3;
-      else if (gameState.age === 15) puppyStage = 4;
-
-      if (!isEventActive && seconds % 20 === 0) {
-        triggerEvent();
-      }
-
-      if (!isEventActive) drawPuppy();
-    }
-    const randomEvents = [
-      { text: "산책 갈 시간이에요!", choices: [{ text: "신나게 달린다", stat: 'intimacy', value: 10 }, { text: "천천히 걷는다", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#b4d4ff') },
-      { text: "목욕할 시간! 물이 싫어요!", choices: [{ text: "부드럽게 씻긴다", stat: 'intimacy', value: 5 }, { text: "간식을 주며 달랜다", stat: 'hunger', value: 10, stat2: 'intimacy', value2: 2 }], anim: () => flashCanvas('#d0f0fd') },
-      { text: "배가 고파요! 밥 주세요!", choices: [{ text: "사료를 준다", stat: 'hunger', value: 20 }, { text: "특식을 준다", stat: 'hunger', value: 30, stat2: 'intimacy', value2: 5 }], anim: () => flashCanvas('#fff1bd') },
-      { text: "놀아주세요!", choices: [{ text: "공놀이를 한다", stat: 'intimacy', value: 15 }, { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }], anim: () => flashCanvas('#ffe2f1') },
-      { text: "으앙! 병원은 무서워요!", choices: [{ text: "용감하게 주사 맞기", stat: 'intimacy', value: -5 }, { text: "칭찬하며 달래주기", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#ffcccc') },
-      { text: "새로운 개인기를 배울래요!", choices: [{ text: "'손!' 가르치기", stat: 'intimacy', value: 10 }, { text: "'코!' 가르치기", stat: 'intimacy', value: 10 }], anim: () => flashCanvas('#f0fff0') },
-      { text: "실수했어요... 집이 엉망이 됐어요.", choices: [{ text: "괜찮아, 같이 치우자", stat: 'intimacy', value: 7 }, { text: "조용히 혼낸다", stat: 'intimacy', value: -10 }], anim: () => flashCanvas('#eaeaea') },
-      { text: "공원에서 새로운 친구를 만났어요!", choices: [{ text: "같이 놀게 한다", stat: 'intimacy', value: 10 }, { text: "조심하라고 부른다", stat: 'intimacy', value: -2 }], anim: () => flashCanvas('#ccffcc') },
-      { text: "숨겨둔 간식을 찾았어요! 먹어도 되나요?", choices: [{ text: "당연하지! 맛있게 먹어", stat: 'hunger', value: 15, stat2: 'intimacy', value2: 5 }, { text: "안돼! 이따 밥 먹어야지", stat: 'hunger', value: -5 }], anim: () => flashCanvas('#ffe4b5') },
-      { text: "천둥 소리에 놀랐어요!", choices: [{ text: "꼭 안아준다", stat: 'intimacy', value: 8 }, { text: "조용한 방으로 데려간다", stat: 'intimacy', value: 5 }], anim: () => flashCanvas('#a0c4ff') },
-      { text: "훈련소에서 초대장이 왔어요!", choices: [{ text: "참여해서 훈련 받는다", stat: 'intimacy', value: 12 }, { text: "너무 어려울 것 같아 패스", stat: 'intimacy', value: -2 }], anim: () => flashCanvas('#d0e6a5') },
-      { text: "아기 고양이를 발견했어요.", choices: [{ text: "집으로 데려온다", stat: 'intimacy', value: 10 }, { text: "그냥 지나친다", stat: 'intimacy', value: -3 }], anim: () => flashCanvas('#ffc2e0') },
-      { text: "생일이에요! 특별한 하루!", choices: [{ text: "파티를 열어준다", stat: 'intimacy', value: 15 }, { text: "간식을 준다", stat: 'hunger', value: 20, stat2: 'intimacy', value2: 10 }], anim: () => flashCanvas('#ffe6cc') },
-      { text: "아파 보여요...", choices: [{ text: "병원에 데려간다", stat: 'intimacy', value: 5 }, { text: "쉬게 한다", stat: 'hunger', value: -10 }], anim: () => flashCanvas('#f8d7da') },
-      { text: "창밖을 바라보며 멍하니 있어요.", choices: [{ text: "같이 앉는다", stat: 'intimacy', value: 6 }, { text: "산책 가자고 한다", stat: 'intimacy', value: 8 }], anim: () => flashCanvas('#dee2ff') }
-    ];
-
-    function flashCanvas(color) {
-      ctx.fillStyle = color;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      setTimeout(drawPuppy, 400);
-    }
+    gameState.name = name;
+    gameState.breed = breed;
+    gameState.imageKey = breedImages[breed][0];
 
     preloadImages(() => {
-      drawPuppy();
-      updateEmotion();
-      setInterval(gameLoop, 1000);
+      document.getElementById('start-screen').classList.remove('active');
+      document.getElementById('game-screen').classList.add('active');
+      document.getElementById('bgm').play();
+      initGame();
     });
-  </script>
+  }
+
+  function preloadImages(callback) {
+    let loaded = 0;
+    const keys = [...breedImages.g, ...breedImages.b];
+    keys.forEach(key => {
+      const img = new Image();
+      img.src = `https://dessa95.github.io/puppy-game-drive/${key}.png`;
+      img.onload = () => {
+        images[key] = img;
+        loaded++;
+        if (loaded === keys.length) {
+          callback();
+        }
+      };
+    });
+  }
+
+  function drawPuppy(ctx) {
+    const key = gameState.imageKey;
+    const img = images[key];
+    if (!img) return;
+    ctx.clearRect(0, 0, 800, 600);
+    ctx.drawImage(img, 250, 150, 300, 300);
+  }
+
+  function updateStatusBar() {
+    const bar = document.getElementById('statusBar');
+    bar.innerHTML = `
+      이름: ${gameState.name}<br>
+      나이: ${gameState.age}<br>
+      배고픔: ${gameState.hunger}<br>
+      친밀도: ${gameState.intimacy}
+    `;
+  }
+
+  function updateTimerDisplay() {
+    const t = document.getElementById('eventTimer');
+    t.innerText = `다음 이벤트까지: ${gameState.timer}초`;
+  }
+</script>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const celebrateEl = document.getElementById("celebrate");
+
+  const randomEvents = [
+    { text: "산책 갈 시간이에요!", choices: [{ text: "신나게 달린다", stat: 'intimacy', value: 10 }, { text: "천천히 걷는다", stat: 'intimacy', value: 5 }] },
+    { text: "목욕할 시간! 물이 싫어요!", choices: [{ text: "부드럽게 씻긴다", stat: 'intimacy', value: 5 }, { text: "간식을 주며 달랜다", stat: 'hunger', value: 10, stat2: 'intimacy', value2: 2 }] },
+    { text: "배가 고파요! 밥 주세요!", choices: [{ text: "사료를 준다", stat: 'hunger', value: 20 }, { text: "특식을 준다", stat: 'hunger', value: 30, stat2: 'intimacy', value2: 5 }] },
+    { text: "놀아주세요!", choices: [{ text: "공놀이를 한다", stat: 'intimacy', value: 15 }, { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }] },
+    { text: "병원은 무서워요!", choices: [{ text: "용감하게 주사 맞기", stat: 'intimacy', value: -5 }, { text: "칭찬하며 달래주기", stat: 'intimacy', value: 5 }] },
+    { text: "새로운 개인기를 배울래요!", choices: [{ text: "'손!' 가르치기", stat: 'intimacy', value: 10 }, { text: "'코!' 가르치기", stat: 'intimacy', value: 10 }] },
+    { text: "집이 엉망이 됐어요...", choices: [{ text: "같이 치우자", stat: 'intimacy', value: 7 }, { text: "조용히 혼낸다", stat: 'intimacy', value: -10 }] },
+    { text: "공원에서 친구를 만났어요!", choices: [{ text: "같이 놀게 한다", stat: 'intimacy', value: 10 }, { text: "조심하라고 부른다", stat: 'intimacy', value: -2 }] },
+    { text: "간식을 찾았어요!", choices: [{ text: "맛있게 먹게 한다", stat: 'hunger', value: 15, stat2: 'intimacy', value2: 5 }, { text: "이따 밥 먹자고 한다", stat: 'hunger', value: -5 }] },
+    { text: "비 오는 날 창밖을 바라봐요", choices: [{ text: "따뜻한 담요를 덮어준다", stat: 'intimacy', value: 10 }, { text: "간식을 준다", stat: 'hunger', value: 10 }] },
+    { text: "강아지가 이상한 소리를 들어요", choices: [{ text: "진정시킨다", stat: 'intimacy', value: 5 }, { text: "같이 주변을 살핀다", stat: 'intimacy', value: 7 }] },
+    { text: "혼자 있을 시간이 필요해 보여요", choices: [{ text: "조용히 해준다", stat: 'intimacy', value: 2 }, { text: "놀아주려고 한다", stat: 'intimacy', value: -2 }] },
+  ];
+
+  let currentEvent = null;
+  let choiceButtons = [];
+
+  function triggerEvent() {
+    currentEvent = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+    drawEvent(currentEvent);
+  }
+
+  function drawEvent(event) {
+    drawPuppy(ctx);
+    ctx.fillStyle = "#000";
+    ctx.font = "22px Gowun Dodum";
+    ctx.fillText(event.text, 30, 520);
+
+    clearChoices();
+    event.choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'button';
+      btn.innerText = c.text;
+      btn.style.position = 'absolute';
+      btn.style.bottom = '20px';
+      btn.style.left = `${40 + i * 220}px`;
+      btn.onclick = () => {
+        applyChoice(c);
+        clearChoices();
+      };
+      choiceButtons.push(btn);
+      document.getElementById('game-wrapper').appendChild(btn);
+    });
+  }
+
+  function clearChoices() {
+    choiceButtons.forEach(btn => btn.remove());
+    choiceButtons = [];
+  }
+
+  function applyChoice(choice) {
+    gameState[choice.stat] += choice.value;
+    if (choice.stat2) gameState[choice.stat2] += choice.value2 || 0;
+    gameState.hunger = Math.max(0, Math.min(100, gameState.hunger));
+    gameState.intimacy = Math.max(0, Math.min(100, gameState.intimacy));
+    updateStatusBar();
+  }
+
+  function checkGrowth() {
+    if (gameState.age === 5 && gameState.stage === 1) {
+      gameState.stage = 2;
+      showGrowth();
+    } else if (gameState.age === 10 && gameState.stage === 2) {
+      gameState.stage = 3;
+      showGrowth();
+    } else if (gameState.age === 15 && gameState.stage === 3) {
+      gameState.stage = 4;
+      showGrowth();
+    }
+  }
+
+  function showGrowth() {
+    gameState.imageKey = breedImages[gameState.breed][gameState.stage - 1];
+    celebrateEl.style.display = "block";
+    setTimeout(() => celebrateEl.style.display = "none", 3000);
+  }
+</script>
+<script>
+  function initGame() {
+    updateStatusBar();
+    updateTimerDisplay();
+    drawPuppy(ctx);
+
+    setInterval(() => {
+      gameState.timer--;
+      updateTimerDisplay();
+
+      if (gameState.timer <= 0) {
+        gameState.timer = 20;
+        triggerEvent();
+        gameState.age++;
+        checkGrowth();
+      }
+    }, 1000);
+  }
+</script>
+
 </body>
 </html>
