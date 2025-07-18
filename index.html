@@ -59,6 +59,7 @@
             background: rgba(255, 255, 255, 0.9);
             color: #5d4037;
             display: flex;
+            flex-direction: column; /* 세로 정렬 추가 */
             justify-content: center;
             align-items: center;
             font-size: 24px;
@@ -72,7 +73,10 @@
     <h1>나만의 댕댕이를 키워보세요! 🐾</h1>
     <div id="game-wrapper">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div id="loading-screen">로딩 중...</div>
+        <div id="loading-screen">
+            <p>로딩 중...</p>
+            <p id="loading-status" style="font-size: 16px; margin-top: 10px;"></p>
+        </div>
     </div>
 
     <audio id="bgm" loop class="hidden"></audio>
@@ -82,11 +86,12 @@
     const ctx = canvas.getContext('2d');
     const bgm = document.getElementById('bgm');
     const loadingScreen = document.getElementById('loading-screen');
+    const loadingStatus = document.getElementById('loading-status');
 
     // --- 게임 상태 및 설정 ---
-    // [FIX] GitHub Pages 주소가 아닌 Raw 파일 주소로 변경
-    const BASE_URL = "https://raw.githubusercontent.com/dessa95/puppy-game-drive/main/";
-    let gameState = 'LOADING'; // LOADING, START_SCREEN, CHOOSE_BREED, NAMING, PLAYING, ERROR
+    // [FIX] BASE_URL을 비워서 상대 경로로 파일을 찾도록 수정
+    const BASE_URL = "";
+    let gameState = 'LOADING';
     let dog = null;
     let gameTime = 0;
     let animationFrame = 0;
@@ -98,40 +103,17 @@
     let images = {};
     let errorMessage = null;
 
-    // --- 이미지 및 오디오 파일 경로 ---
     const ASSETS = {
         bgm: 'bgm.mp3',
-        bichon_newborn: 'b1.png',
-        bichon_teen: 'b2.png',
-        bichon_adult: 'b3.png',
-        bichon_senior: 'b4.png',
-        retriever_newborn: 'g1.png',
-        retriever_teen: 'g2.png',
-        retriever_adult: 'g3.png',
-        retriever_senior: 'g4.png',
+        bichon_newborn: 'b1.png', bichon_teen: 'b2.png', bichon_adult: 'b3.png', bichon_senior: 'b4.png',
+        retriever_newborn: 'g1.png', retriever_teen: 'g2.png', retriever_adult: 'g3.png', retriever_senior: 'g4.png',
     };
 
-    // --- 품종 데이터 ---
     const breeds = {
-        '비숑 프리제': {
-            images: {
-                '신생아기': 'bichon_newborn',
-                '청소년기': 'bichon_teen',
-                '성년기': 'bichon_adult',
-                '노령기': 'bichon_senior'
-            }
-        },
-        '골든 리트리버': {
-            images: {
-                '신생아기': 'retriever_newborn',
-                '청소년기': 'retriever_teen',
-                '성년기': 'retriever_adult',
-                '노령기': 'retriever_senior'
-            }
-        }
+        '비숑 프리제': { images: { '신생아기': 'bichon_newborn', '청소년기': 'bichon_teen', '성년기': 'bichon_adult', '노령기': 'bichon_senior' } },
+        '골든 리트리버': { images: { '신생아기': 'retriever_newborn', '청소년기': 'retriever_teen', '성년기': 'retriever_adult', '노령기': 'retriever_senior' } }
     };
 
-    // --- 생애 주기 및 이벤트 데이터 ---
     const lifecycle = [
         { age: 0, stage: "신생아기", event: "세상에 태어났어요! 안녕?" },
         { age: 2, stage: "청소년기", event: "에너지가 넘쳐요! '개린이'가 되었어요." },
@@ -148,36 +130,45 @@
 
     // --- 에셋 로딩 ---
     function loadAssets() {
-        console.log("에셋 로딩을 시작합니다...");
         const promises = [];
-        for (const key in ASSETS) {
+        const assetKeys = Object.keys(ASSETS);
+        assetKeys.forEach(key => {
+            const path = BASE_URL + ASSETS[key];
             if (key === 'bgm') {
-                bgm.src = BASE_URL + ASSETS[key];
-                console.log(`오디오 로딩 시도: ${bgm.src}`);
+                bgm.src = path;
+                bgm.addEventListener('canplaythrough', () => console.log(`오디오 로딩 완료: ${path}`), { once: true });
+                bgm.addEventListener('error', () => console.error(`오디오 로딩 실패: ${path}`), { once: true });
             } else {
                 const img = new Image();
-                img.crossOrigin = "Anonymous"; // CORS 정책 대응
-                const src = BASE_URL + ASSETS[key];
-                img.src = src;
                 images[key] = img;
-                console.log(`이미지 로딩 시도: ${src}`);
                 promises.push(new Promise(resolve => {
                     img.onload = () => {
-                        console.log(`성공: ${src}`);
-                        resolve();
+                        loadingStatus.textContent = `'${ASSETS[key]}' 로딩 완료!`;
+                        console.log(`성공: ${path}`);
+                        resolve({key, status: 'ok'});
                     };
                     img.onerror = () => {
-                        console.error(`실패: ${src} 파일을 불러올 수 없습니다.`);
-                        resolve(); 
+                        loadingStatus.textContent = `'${ASSETS[key]}' 로딩 실패!`;
+                        console.error(`실패: ${path} 파일을 불러올 수 없습니다.`);
+                        resolve({key, status: 'error'});
                     };
+                    img.src = path;
                 }));
             }
-        }
+        });
         return Promise.all(promises);
     }
 
     // --- 그리기 함수 ---
-    function drawBackground() { /* ...이전과 동일... */ }
+    function drawBackground() {
+        ctx.fillStyle = '#f4a261'; ctx.fillRect(0, 450, canvas.width, 150);
+        ctx.fillStyle = '#e9c46a'; ctx.fillRect(0, 0, canvas.width, 450);
+        ctx.fillStyle = '#a2d2ff'; ctx.fillRect(550, 100, 150, 100);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.strokeRect(550, 100, 150, 100);
+        ctx.beginPath(); ctx.moveTo(625, 100); ctx.lineTo(625, 200);
+        ctx.moveTo(550, 150); ctx.lineTo(700, 150); ctx.stroke();
+    }
+
     function drawDog() {
         if (!dog) return;
         const currentLifecycleStage = lifecycle.slice().reverse().find(s => dog.age >= s.age);
@@ -208,28 +199,86 @@
         ctx.drawImage(img, dogX, dogY, imgWidth, imgHeight);
     }
 
-    function drawUI() { /* ...이전과 동일... */ }
-    function drawWalkAnim() { /* ...이전과 동일... */ }
-    function drawBathAnim() { /* ...이전과 동일... */ }
-    function drawEatAnim() { /* ...이전과 동일... */ }
-    function drawPlayAnim() { /* ...이전과 동일... */ }
-    function drawButton(text, x, y, width, height, hover) { /* ...이전과 동일... */ }
-    function drawEvent() { /* ...이전과 동일... */ }
-    function drawScreen(title, subtitle) { /* ...이전과 동일... */ }
-    function drawBreedSelection() { /* ...이전과 동일... */ }
-    function drawNamingScreen() { /* ...이전과 동일... */ }
+    function drawUI() { 
+        if (gameState !== 'PLAYING') return;
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.strokeStyle = '#d4a373';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(10, 10, 320, 120, 15);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#5d4037';
+        ctx.font = 'bold 22px "Pretendard", "Malgun Gothic", sans-serif';
+        ctx.textAlign = 'left';
+        const currentLifecycleStage = lifecycle.slice().reverse().find(s => dog.age >= s.age);
+        dog.stage = currentLifecycleStage ? currentLifecycleStage.stage : '알 수 없음';
+        ctx.fillText(`🐾 ${dog.name}`, 25, 45);
+        ctx.font = '18px "Pretendard", "Malgun Gothic", sans-serif';
+        ctx.fillText(`🎂 ${dog.age}살 (${dog.stage})`, 25, 75);
+        const drawGauge = (label, value, color, y) => {
+            ctx.fillText(label, 25, y + 12);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath(); ctx.roundRect(110, y, 190, 18, 9); ctx.fill();
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.roundRect(110, y, Math.max(0, value) * 1.9, 18, 9); ctx.fill();
+            ctx.fillStyle = '#5d4037';
+        };
+        drawGauge('친밀도', dog.stats.intimacy, '#ff8fab', 95);
+        drawGauge('배고픔', dog.stats.hunger, '#fca311', 120);
+        ctx.restore();
+    }
 
-    // --- 게임 로직 ---
-    function update() { /* ...이전과 동일... */ }
-    function checkLifecycle() { /* ...이전과 동일... */ }
-    function triggerRandomEvent() { /* ...이전과 동일... */ }
-    function selectEventChoice(choice) { /* ...이전과 동일... */ }
-    function isMouseOver(rect) { /* ...이전과 동일... */ }
+    function drawWalkAnim() { /* ... */ }
+    function drawBathAnim() { /* ... */ }
+    function drawEatAnim() { /* ... */ }
+    function drawPlayAnim() { /* ... */ }
+    function drawButton(text, x, y, width, height, hover) { /* ... */ }
+    function drawEvent() { /* ... */ }
+    function drawScreen(title, subtitle) { /* ... */ }
+    function drawBreedSelection() { /* ... */ }
+    function drawNamingScreen() { /* ... */ }
 
+    // --- (이하 나머지 코드는 이전과 동일합니다) ---
+    function update() {
+        animationFrame++;
+        if (gameState !== 'PLAYING' || currentEvent) return;
+        gameTime++;
+        if (gameTime % 3600 === 0) { dog.age++; checkLifecycle(); }
+        if (gameTime % 60 === 0) {
+            dog.stats.hunger = Math.max(0, dog.stats.hunger - 0.5);
+            dog.stats.intimacy = Math.max(0, dog.stats.intimacy - 0.2);
+        }
+        if (gameTime > 300 && gameTime % 600 === 0) triggerRandomEvent();
+    }
+    function checkLifecycle() {
+        const currentStage = lifecycle.find(s => dog.age === s.age);
+        if (currentStage && dog.age > lastLifecycleEventAge) {
+            lastLifecycleEventAge = dog.age;
+            dog.stage = currentStage.stage;
+            currentEvent = { text: currentStage.event, choices: [{ text: "알았어!" }], isLifecycle: true };
+        }
+    }
+    function triggerRandomEvent() {
+        if (currentEvent) return;
+        const eventIndex = Math.floor(Math.random() * randomEvents.length);
+        currentEvent = JSON.parse(JSON.stringify(randomEvents[eventIndex]));
+        currentEvent.anim = randomEvents[eventIndex].anim;
+    }
+    function selectEventChoice(choice) {
+        if (choice.stat) dog.stats[choice.stat] = Math.min(100, dog.stats[choice.stat] + choice.value);
+        if (choice.stat2) dog.stats[choice.stat2] = Math.min(100, dog.stats[choice.stat2] + choice.value2);
+        currentEvent = null;
+    }
+    function isMouseOver(rect) {
+        if (!rect) return false;
+        return mousePos.x > rect.x && mousePos.x < rect.x + rect.width &&
+               mousePos.y > rect.y && mousePos.y < rect.y + rect.height;
+    }
     function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         update();
-
         if (gameState === 'PLAYING') {
             drawBackground(); drawDog(); drawUI();
             if (currentEvent) drawEvent();
@@ -247,42 +296,67 @@
             ctx.textAlign = 'center';
             ctx.fillText(errorMessage, canvas.width / 2, canvas.height / 2);
         }
-        
         requestAnimationFrame(gameLoop);
     }
-
-    // --- 이벤트 핸들러 ---
-    function handleCanvasClick(e) { /* ...이전과 동일... */ }
-    function handleMouseMove(e) { /* ...이전과 동일... */ }
-    function handleKeyDown(e) { /* ...이전과 동일... */ }
-
-    // --- 초기화 ---
+    function handleCanvasClick(e) {
+        if (!musicStarted) {
+            bgm.volume = 0.3;
+            bgm.play().catch(err => console.error("BGM 재생 실패:", err));
+            musicStarted = true;
+        }
+        if (gameState === 'START_SCREEN') {
+            gameState = 'CHOOSE_BREED';
+        } else if (gameState === 'CHOOSE_BREED') {
+            Object.keys(breeds).forEach(breed => {
+                if (isMouseOver(breeds[breed].btn)) {
+                    dog = { breed: breed, name: '', age: 0, stage: '신생아기', stats: { intimacy: 50, hunger: 50 } };
+                    gameState = 'NAMING';
+                }
+            });
+        } else if (gameState === 'PLAYING' && currentEvent) {
+            currentEvent.choices.forEach(choice => {
+                if (isMouseOver(choice)) selectEventChoice(choice);
+            });
+        }
+    }
+    function handleMouseMove(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        mousePos.x = (e.clientX - rect.left) * scaleX;
+        mousePos.y = (e.clientY - rect.top) * scaleY;
+    }
+    function handleKeyDown(e) {
+        if (gameState !== 'NAMING') return;
+        if (e.key === 'Enter' && dogNameInput.length > 0) {
+            dog.name = dogNameInput;
+            gameState = 'PLAYING';
+            checkLifecycle();
+        } else if (e.key === 'Backspace') {
+            dogNameInput = dogNameInput.slice(0, -1);
+        } else if (e.key.length === 1 && dogNameInput.length < 10 && /^[ㄱ-ㅎ가-힣a-zA-Z0-9\s]$/.test(e.key)) {
+            dogNameInput += e.key;
+        }
+    }
     async function init() {
         canvas.addEventListener('click', handleCanvasClick);
         canvas.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('keydown', handleKeyDown);
-
         const loadingTimeout = setTimeout(() => {
             if (gameState === 'LOADING') {
-                console.error("로딩 시간이 10초를 초과했습니다. 파일 경로 또는 이름을 다시 확인해주세요.");
-                errorMessage = "로딩 시간이 초과되었습니다. F12를 눌러 콘솔을 확인해주세요.";
-                loadingScreen.classList.add('hidden');
+                errorMessage = "로딩 시간이 초과되었습니다. 파일 경로를 확인해주세요.";
+                loadingScreen.innerHTML = `<p>${errorMessage}</p><p style="font-size:14px">F12를 눌러 콘솔 오류를 확인하세요.</p>`;
                 gameState = 'ERROR';
             }
         }, 10000);
-
         await loadAssets();
-        console.log("모든 에셋 로딩 절차가 완료되었습니다.");
         clearTimeout(loadingTimeout);
-
         if (gameState !== 'ERROR') {
             loadingScreen.classList.add('hidden');
             gameState = 'START_SCREEN';
         }
-        
         gameLoop();
     }
-
     init();
 </script>
 </body>
