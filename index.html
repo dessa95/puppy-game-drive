@@ -89,7 +89,6 @@
     const loadingStatus = document.getElementById('loading-status');
 
     // --- 게임 상태 및 설정 ---
-    // [FIX] BASE_URL을 비워서 상대 경로로 파일을 찾도록 수정
     const BASE_URL = "";
     let gameState = 'LOADING';
     let dog = null;
@@ -128,7 +127,7 @@
         { text: "놀아주세요!", choices: [{ text: "공놀이를 한다", stat: 'intimacy', value: 15 }, { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }], anim: drawPlayAnim }
     ];
 
-    // --- 에셋 로딩 ---
+    // --- 에셋 로딩 (오디오 로딩 로직 수정) ---
     function loadAssets() {
         const promises = [];
         const assetKeys = Object.keys(ASSETS);
@@ -136,8 +135,19 @@
             const path = BASE_URL + ASSETS[key];
             if (key === 'bgm') {
                 bgm.src = path;
-                bgm.addEventListener('canplaythrough', () => console.log(`오디오 로딩 완료: ${path}`), { once: true });
-                bgm.addEventListener('error', () => console.error(`오디오 로딩 실패: ${path}`), { once: true });
+                // [FIX] 오디오 로딩도 Promise로 감싸서 로딩 완료를 확실히 기다립니다.
+                promises.push(new Promise(resolve => {
+                    bgm.addEventListener('canplaythrough', () => {
+                        loadingStatus.textContent = `'${ASSETS[key]}' 로딩 완료!`;
+                        console.log(`오디오 로딩 완료: ${path}`);
+                        resolve({key, status: 'ok'});
+                    }, { once: true });
+                    bgm.addEventListener('error', (e) => {
+                        loadingStatus.textContent = `'${ASSETS[key]}' 로딩 실패!`;
+                        console.error(`오디오 로딩 실패: ${path}`, e);
+                        resolve({key, status: 'error'});
+                    }, { once: true });
+                }));
             } else {
                 const img = new Image();
                 images[key] = img;
@@ -339,23 +349,25 @@
         }
     }
     async function init() {
-        canvas.addEventListener('click', handleCanvasClick);
-        canvas.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('keydown', handleKeyDown);
-        const loadingTimeout = setTimeout(() => {
-            if (gameState === 'LOADING') {
-                errorMessage = "로딩 시간이 초과되었습니다. 파일 경로를 확인해주세요.";
-                loadingScreen.innerHTML = `<p>${errorMessage}</p><p style="font-size:14px">F12를 눌러 콘솔 오류를 확인하세요.</p>`;
-                gameState = 'ERROR';
-            }
-        }, 10000);
-        await loadAssets();
-        clearTimeout(loadingTimeout);
-        if (gameState !== 'ERROR') {
+        // [FIX] Wrap main logic in try...catch for better error handling
+        try {
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('keydown', handleKeyDown);
+            
+            await loadAssets();
+            
             loadingScreen.classList.add('hidden');
             gameState = 'START_SCREEN';
+            gameLoop();
+        } catch (error) {
+            console.error("초기화 중 심각한 오류 발생:", error);
+            errorMessage = "게임 초기화 중 오류가 발생했습니다. 콘솔을 확인해주세요.";
+            loadingScreen.innerHTML = `<p>${errorMessage}</p>`;
+            gameState = 'ERROR';
+            // Start the game loop to display the error message on canvas
+            gameLoop();
         }
-        gameLoop();
     }
     init();
 </script>
