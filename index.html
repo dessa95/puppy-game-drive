@@ -179,308 +179,287 @@
   </audio>
 </div>
 <script>
-  let puppyName = "";
-  let breed = "";
-  let age = 0;
-  let hunger = 50;
-  let intimacy = 50;
-  let ageInterval, eventInterval, eventCountdown;
-  let eventRemaining = 5;
-  let eventRunning = false;
+let puppyName = "";
+let breed = "";
+let age = 0;
+let hunger = 50;
+let intimacy = 50;
+let ageInterval, eventInterval, countdownInterval;
+let eventRemaining = 5;
+let eventRunning = false;
 
-  const puppyImg = document.getElementById("puppy-img");
-  const statusBar = document.getElementById("statusBar");
-  const eventTimer = document.getElementById("eventTimer");
-  const celebrate = document.getElementById("celebrate");
+const puppyImg = document.getElementById("puppy-img");
+const statusBar = document.getElementById("statusBar");
+const eventTimer = document.getElementById("eventTimer");
+const celebrate = document.getElementById("celebrate");
 
-  function selectBreed(selected) {
-    breed = selected;
-  }
+function selectBreed(selected) {
+  breed = selected;
+}
 
-  function startGame() {
-    puppyName = document.getElementById("puppy-name").value || "강아지";
-    if (!breed) { alert("강아지 품종을 선택하세요!"); return; }
+function startGame() {
+  puppyName = document.getElementById("puppy-name").value || "강아지";
+  if (!breed) { alert("강아지 품종을 선택하세요!"); return; }
 
-    document.getElementById("start-screen").classList.remove("active");
-    document.getElementById("game-screen").classList.add("active");
+  document.getElementById("start-screen").classList.remove("active");
+  document.getElementById("game-screen").classList.add("active");
 
-    updateStatus();
+  updateStatus();
+  updatePuppyImage();
+  startTimers();
+}
+
+function getGrowthStage() {
+  if (age < 2) return "신생아기";
+  if (age < 6) return "청소년기";
+  if (age < 10) return "성년기";
+  return "노령기";
+}
+
+function updatePuppyImage() {
+  const stageIndex = age < 2 ? 1 : age < 6 ? 2 : age < 10 ? 3 : 4;
+  const imageCode = breed + stageIndex;
+  puppyImg.src = `https://dessa95.github.io/puppy-game-drive/${imageCode}.png`;
+}
+
+function updateStatus() {
+  const stage = getGrowthStage();
+  statusBar.innerHTML =
+    `🐾 이름: ${puppyName}<br>📅 나이: ${age}살 (${stage})<br>🍖 배고픔: ${hunger}<br>❤️ 친밀도: ${intimacy}`;
+}
+
+function checkGrowth() {
+  const stage = getGrowthStage();
+  if (age === 2 || age === 6 || age === 10) {
+    celebrate.innerText = `🎉 ${stage}로 성장했어요!`;
+    celebrate.style.display = "block";
+    puppyImg.classList.add("grow");
     updatePuppyImage();
-    startTimers();
+    setTimeout(() => {
+      celebrate.style.display = "none";
+      puppyImg.classList.remove("grow");
+    }, 2000);
+  } else {
+    updatePuppyImage();
   }
+}
 
-  function updateStatus() {
-    const stage = getGrowthStage();
-    statusBar.innerHTML =
-      `🐾 이름: ${puppyName}<br>📅 나이: ${age}살 (${stage})<br>🍖 배고픔: ${hunger}<br>❤️ 친밀도: ${intimacy}`;
-  }
-
-  function updatePuppyImage() {
-    const stageIndex = age < 2 ? 1 : age < 6 ? 2 : age < 10 ? 3 : 4;
-    const imageCode = breed + stageIndex;
-    puppyImg.src = `https://dessa95.github.io/puppy-game-drive/${imageCode}.png`;
-  }
-
-  function getGrowthStage() {
-    if (age < 2) return "신생아기";
-    if (age < 6) return "청소년기";
-    if (age < 10) return "성년기";
-    return "노령기";
-  }
-
-  function startTimers() {
-    ageInterval = setInterval(() => {
-      if (!eventRunning) {
-        age++;
-        checkGrowth();
-        updateStatus();
-      }
-    }, 20000); // 20초마다 한 살
-
-    eventInterval = setInterval(() => {
-      if (!eventRunning) {
-        triggerRandomEvent();
-      }
-    }, 5000); // 5초마다 이벤트
-
-    eventCountdown = setInterval(() => {
-      if (!eventRunning) {
-        eventRemaining--;
-        if (eventRemaining < 0) eventRemaining = 5;
-        eventTimer.innerText = `다음 이벤트까지: ${eventRemaining}초`;
-      }
-    }, 1000);
-  }
-
-  function checkGrowth() {
-    const stage = getGrowthStage();
-    if (age === 2 || age === 6 || age === 10) {
-      celebrate.innerText = `🎉 ${stage}로 성장했어요!`;
-      celebrate.style.display = "block";
-      puppyImg.classList.add("grow");
-      updatePuppyImage();
-      setTimeout(() => {
-        celebrate.style.display = "none";
-        puppyImg.classList.remove("grow");
-      }, 2000);
-    } else {
-      updatePuppyImage();
+function startTimers() {
+  ageInterval = setInterval(() => {
+    if (!eventRunning) {
+      age++;
+      checkGrowth();
+      updateStatus();
     }
-  }
+  }, 20000); // 20초마다 한 살
 
-  function toggleInteractionPanel() {
-    const panel = document.getElementById("interactionPanel");
-    panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
-  }
+  eventInterval = setInterval(() => {
+    if (!eventRunning) triggerRandomEvent();
+  }, 5000); // 5초마다 이벤트
 
-  function directInteraction(type) {
-    let msg = "";
-    switch (type) {
-      case "쓰다듬기":
-        intimacy += 8;
-        msg = "❤️ 쓰다듬어줬어요! 기분 좋아요!";
-        break;
-      case "귀 냄새 맡기":
-        intimacy += 3;
-        msg = "👃 귀에서 고소한 향이 나요!";
-        break;
-      case "발 냄새 맡기":
-        intimacy += 2;
-        msg = "🦶 음... 이 냄새는!";
-        break;
-      case "껴안기":
-        intimacy += 10;
-        msg = "🤗 껴안아줬어요! 사랑이 넘쳐요!";
-        break;
+  countdownInterval = setInterval(() => {
+    if (!eventRunning) {
+      eventRemaining--;
+      if (eventRemaining < 0) eventRemaining = 5;
+      eventTimer.innerText = `다음 이벤트까지: ${eventRemaining}초`;
     }
+  }, 1000);
+}
 
-    showEffect(msg);
-    puppyImg.classList.add("shake");
-    setTimeout(() => puppyImg.classList.remove("shake"), 1000);
-    updateStatus();
+function toggleInteractionPanel() {
+  const panel = document.getElementById("interactionPanel");
+  panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
+}
+
+function directInteraction(type) {
+  let msg = "";
+  switch (type) {
+    case "쓰다듬기":
+      intimacy += 8;
+      msg = "❤️ 쓰다듬어줬어요! 기분 좋아요!";
+      break;
+    case "귀 냄새 맡기":
+      intimacy += 3;
+      msg = "👃 귀에서 고소한 향이 나요!";
+      break;
+    case "발 냄새 맡기":
+      intimacy += 2;
+      msg = "🦶 음... 이 냄새는!";
+      break;
+    case "껴안기":
+      intimacy += 10;
+      msg = "🤗 껴안아줬어요! 사랑이 넘쳐요!";
+      break;
   }
 
-  function showEffect(text) {
-    const eff = document.createElement("div");
-    eff.innerText = text;
-    eff.style.position = "absolute";
-    eff.style.top = "50%";
-    eff.style.left = "50%";
-    eff.style.transform = "translate(-50%, -50%)";
-    eff.style.background = "#fff8c6";
-    eff.style.color = "#e04e00";
-    eff.style.padding = "10px 20px";
-    eff.style.border = "1px solid #f0b76c";
-    eff.style.borderRadius = "12px";
-    eff.style.zIndex = "999";
-    eff.style.fontSize = "1rem";
-    eff.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-    document.body.appendChild(eff);
-    setTimeout(() => eff.remove(), 1800);
+  showEffect(msg);
+  puppyImg.classList.add("shake");
+  setTimeout(() => puppyImg.classList.remove("shake"), 1000);
+  updateStatus();
+}
+const events = [
+  { text: "산책 갈 시간이에요!", choices: [
+      { text: "신나게 달린다", stat: 'intimacy', value: 10 },
+      { text: "천천히 걷는다", stat: 'intimacy', value: 5 }
+    ]
+  },
+  { text: "목욕할 시간! 물이 싫어요!", choices: [
+      { text: "부드럽게 씻긴다", stat: 'intimacy', value: 5 },
+      { text: "간식을 주며 달랜다", stat: 'hunger', value: 10, stat2: 'intimacy', value2: 2 }
+    ]
+  },
+  { text: "배가 고파요! 밥 주세요!", choices: [
+      { text: "사료를 준다", stat: 'hunger', value: 20 },
+      { text: "특식을 준다", stat: 'hunger', value: 30, stat2: 'intimacy', value2: 5 }
+    ]
+  },
+  { text: "놀아주세요!", choices: [
+      { text: "공놀이를 한다", stat: 'intimacy', value: 15 },
+      { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }
+    ]
+  },
+  { text: "병원 가는 날이에요!", choices: [
+      { text: "용감하게 주사 맞기", stat: 'intimacy', value: -5 },
+      { text: "칭찬하며 달래주기", stat: 'intimacy', value: 5 }
+    ]
+  },
+  { text: "새로운 개인기를 배울래요!", choices: [
+      { text: "'손!' 가르치기", stat: 'intimacy', value: 10 },
+      { text: "'코!' 가르치기", stat: 'intimacy', value: 10 }
+    ]
+  },
+  { text: "실수했어요... 집이 엉망이 됐어요.", choices: [
+      { text: "괜찮아, 같이 치우자", stat: 'intimacy', value: 7 },
+      { text: "조용히 혼낸다", stat: 'intimacy', value: -10 }
+    ]
+  },
+  { text: "공원에서 친구를 만났어요!", choices: [
+      { text: "같이 놀게 한다", stat: 'intimacy', value: 10 },
+      { text: "조심하라고 부른다", stat: 'intimacy', value: -2 }
+    ]
+  },
+  { text: "숨겨둔 간식을 찾았어요!", choices: [
+      { text: "맛있게 먹어", stat: 'hunger', value: 15, stat2: 'intimacy', value2: 5 },
+      { text: "이따 밥 먹어야지", stat: 'hunger', value: -5 }
+    ]
+  },
+  { text: "오늘은 훈련 날! 집중해요!", choices: [
+      { text: "집중해서 훈련시킨다", stat: 'intimacy', value: 8 },
+      { text: "간식으로 유도한다", stat: 'hunger', value: -10, stat2: 'intimacy', value2: 6 }
+    ]
+  },
+  { text: "강아지가 우울해 보여요.", choices: [
+      { text: "안아준다", stat: 'intimacy', value: 10 },
+      { text: "놀아준다", stat: 'intimacy', value: 7 }
+    ]
+  },
+  { text: "장난감을 물어왔어요!", choices: [
+      { text: "같이 놀아준다", stat: 'intimacy', value: 9 },
+      { text: "나중에 놀자고 한다", stat: 'intimacy', value: -3 }
+    ]
+  },
+  { text: "갑자기 짖어요!", choices: [
+      { text: "무슨 일이야? 확인한다", stat: 'intimacy', value: 5 },
+      { text: "조용히 시킨다", stat: 'intimacy', value: -2 }
+    ]
+  },
+  { text: "빗속 산책을 나가야 해요!", choices: [
+      { text: "우비 입히고 나간다", stat: 'intimacy', value: 5 },
+      { text: "오늘은 쉰다", stat: 'intimacy', value: -3 }
+    ]
   }
+];
+
+function triggerRandomEvent() {
+  eventRunning = true;
+  const wrapper = document.getElementById("game-wrapper");
+  const event = events[Math.floor(Math.random() * events.length)];
+
+  const popup = document.createElement("div");
+  popup.style.position = "absolute";
+  popup.style.top = "10%";
+  popup.style.left = "50%";
+  popup.style.transform = "translateX(-50%)";
+  popup.style.background = "#fff7f0";
+  popup.style.padding = "20px";
+  popup.style.border = "2px solid #ffa478";
+  popup.style.borderRadius = "15px";
+  popup.style.zIndex = "1000";
+  popup.style.textAlign = "center";
+  popup.style.boxShadow = "0 5px 15px rgba(0,0,0,0.15)";
+  popup.innerHTML = `<p style="font-size: 1.1rem; margin-bottom: 10px;">${event.text}</p>`;
+
+  event.choices.forEach((choice) => {
+    const btn = document.createElement("button");
+    btn.className = "button";
+    btn.innerText = choice.text;
+    btn.onclick = () => {
+      if (choice.stat) window[choice.stat] += choice.value;
+      if (choice.stat2) window[choice.stat2] += choice.value2 || 0;
+
+      if (choice.value > 0 || (choice.stat2 && choice.value2 > 0)) {
+        puppyImg.classList.add("shake");
+        setTimeout(() => puppyImg.classList.remove("shake"), 600);
+        showEffect("🐾 기분이 좋아졌어요!");
+      }
+
+      updateStatus();
+      wrapper.removeChild(popup);
+      eventRunning = false;
+    };
+    popup.appendChild(btn);
+  });
+
+  wrapper.appendChild(popup);
+}
+
+function showEffect(text) {
+  const eff = document.createElement("div");
+  eff.innerText = text;
+  eff.style.position = "absolute";
+  eff.style.top = "50%";
+  eff.style.left = "50%";
+  eff.style.transform = "translate(-50%, -50%)";
+  eff.style.background = "#fff8c6";
+  eff.style.color = "#e04e00";
+  eff.style.padding = "10px 20px";
+  eff.style.border = "1px solid #f0b76c";
+  eff.style.borderRadius = "12px";
+  eff.style.zIndex = "999";
+  eff.style.fontSize = "1rem";
+  eff.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+  document.body.appendChild(eff);
+  setTimeout(() => eff.remove(), 1800);
+}
 </script>
-<script>
-  const puppyImg = document.createElement("img");
-  puppyImg.id = "puppy-img";
-  puppyImg.style.position = "absolute";
-  puppyImg.style.top = "50%";
-  puppyImg.style.left = "50%";
-  puppyImg.style.transform = "translate(-50%, -50%)";
-  puppyImg.style.width = "50%";
-  puppyImg.style.transition = "transform 0.3s ease";
-  document.getElementById("game-wrapper").appendChild(puppyImg);
 
-  const events = [
-    { text: "산책 갈 시간이에요!", choices: [
-        { text: "신나게 달린다", stat: 'intimacy', value: 10 },
-        { text: "천천히 걷는다", stat: 'intimacy', value: 5 }
-      ]
-    },
-    { text: "목욕할 시간! 물이 싫어요!", choices: [
-        { text: "부드럽게 씻긴다", stat: 'intimacy', value: 5 },
-        { text: "간식을 주며 달랜다", stat: 'hunger', value: 10, stat2: 'intimacy', value2: 2 }
-      ]
-    },
-    { text: "배가 고파요! 밥 주세요!", choices: [
-        { text: "사료를 준다", stat: 'hunger', value: 20 },
-        { text: "특식을 준다", stat: 'hunger', value: 30, stat2: 'intimacy', value2: 5 }
-      ]
-    },
-    { text: "놀아주세요!", choices: [
-        { text: "공놀이를 한다", stat: 'intimacy', value: 15 },
-        { text: "터그 놀이를 한다", stat: 'intimacy', value: 12 }
-      ]
-    },
-    { text: "병원 가는 날이에요!", choices: [
-        { text: "용감하게 주사 맞기", stat: 'intimacy', value: -5 },
-        { text: "칭찬하며 달래주기", stat: 'intimacy', value: 5 }
-      ]
-    },
-    { text: "새로운 개인기를 배울래요!", choices: [
-        { text: "'손!' 가르치기", stat: 'intimacy', value: 10 },
-        { text: "'코!' 가르치기", stat: 'intimacy', value: 10 }
-      ]
-    },
-    { text: "실수했어요... 집이 엉망이 됐어요.", choices: [
-        { text: "괜찮아, 같이 치우자", stat: 'intimacy', value: 7 },
-        { text: "조용히 혼낸다", stat: 'intimacy', value: -10 }
-      ]
-    },
-    { text: "공원에서 친구를 만났어요!", choices: [
-        { text: "같이 놀게 한다", stat: 'intimacy', value: 10 },
-        { text: "조심하라고 부른다", stat: 'intimacy', value: -2 }
-      ]
-    },
-    { text: "숨겨둔 간식을 찾았어요!", choices: [
-        { text: "맛있게 먹어", stat: 'hunger', value: 15, stat2: 'intimacy', value2: 5 },
-        { text: "이따 밥 먹어야지", stat: 'hunger', value: -5 }
-      ]
-    },
-    { text: "오늘은 훈련 날! 집중해요!", choices: [
-        { text: "집중해서 훈련시킨다", stat: 'intimacy', value: 8 },
-        { text: "간식으로 유도한다", stat: 'hunger', value: -10, stat2: 'intimacy', value2: 6 }
-      ]
-    },
-    { text: "강아지가 우울해 보여요.", choices: [
-        { text: "안아준다", stat: 'intimacy', value: 10 },
-        { text: "놀아준다", stat: 'intimacy', value: 7 }
-      ]
-    },
-    { text: "장난감을 물어왔어요!", choices: [
-        { text: "같이 놀아준다", stat: 'intimacy', value: 9 },
-        { text: "나중에 놀자고 한다", stat: 'intimacy', value: -3 }
-      ]
-    },
-    { text: "갑자기 짖어요!", choices: [
-        { text: "무슨 일이야? 확인한다", stat: 'intimacy', value: 5 },
-        { text: "조용히 시킨다", stat: 'intimacy', value: -2 }
-      ]
-    },
-    { text: "빗속 산책을 나가야 해요!", choices: [
-        { text: "우비 입히고 나간다", stat: 'intimacy', value: 5 },
-        { text: "오늘은 쉰다", stat: 'intimacy', value: -3 }
-      ]
-    }
-  ];
-
-  function triggerRandomEvent() {
-    eventRunning = true;
-    const wrapper = document.getElementById("game-wrapper");
-    const event = events[Math.floor(Math.random() * events.length)];
-
-    const popup = document.createElement("div");
-    popup.style.position = "absolute";
-    popup.style.top = "10%";
-    popup.style.left = "50%";
-    popup.style.transform = "translateX(-50%)";
-    popup.style.background = "#fff7f0";
-    popup.style.padding = "20px";
-    popup.style.border = "2px solid #ffa478";
-    popup.style.borderRadius = "15px";
-    popup.style.zIndex = "1000";
-    popup.style.textAlign = "center";
-    popup.style.boxShadow = "0 5px 15px rgba(0,0,0,0.15)";
-    popup.innerHTML = `<p style="font-size: 1.1rem; margin-bottom: 10px;">${event.text}</p>`;
-
-    event.choices.forEach((choice) => {
-      const btn = document.createElement("button");
-      btn.className = "button";
-      btn.innerText = choice.text;
-      btn.onclick = () => {
-        if (choice.stat) window[choice.stat] += choice.value;
-        if (choice.stat2) window[choice.stat2] += choice.value2 || 0;
-
-        if (choice.value > 0 || (choice.stat2 && choice.value2 > 0)) {
-          puppyImg.classList.add("shake");
-          setTimeout(() => puppyImg.classList.remove("shake"), 600);
-          showEffect("🐾 기분이 좋아졌어요!");
-        }
-
-        updateStatus();
-        wrapper.removeChild(popup);
-        eventRunning = false;
-      };
-      popup.appendChild(btn);
-    });
-
-    wrapper.appendChild(popup);
-  }
-</script>
 <style>
-  @keyframes shakeAnim {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    25% { transform: translate(-50%, -50%) rotate(5deg); }
-    50% { transform: translate(-50%, -50%) rotate(-5deg); }
-    75% { transform: translate(-50%, -50%) rotate(3deg); }
-    100% { transform: translate(-50%, -50%) rotate(0deg); }
-  }
-
-  @keyframes growAnim {
-    0% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.15); }
-    100% { transform: translate(-50%, -50%) scale(1); }
-  }
-
-  #puppy-img.shake {
-    animation: shakeAnim 0.6s ease;
-  }
-
-  #puppy-img.grow {
-    animation: growAnim 1s ease;
-  }
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  50% { transform: translateX(10px); }
+  75% { transform: translateX(-10px); }
+  100% { transform: translateX(0); }
+}
+@keyframes grow {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+#puppy-img.shake { animation: shake 0.6s ease; }
+#puppy-img.grow { animation: grow 0.6s ease; }
 </style>
 
 <script>
-  // 배경음악 자동 재생 처리
-  window.addEventListener("load", () => {
-    const bgm = document.getElementById("bgm");
-    if (bgm) {
-      bgm.volume = 0.5;
-      bgm.play().catch(() => {
-        document.body.addEventListener("click", () => bgm.play(), { once: true });
-      });
-    }
-  });
+window.addEventListener("load", () => {
+  const bgm = document.getElementById("bgm");
+  if (bgm) {
+    bgm.volume = 0.5;
+    bgm.play().catch(() => {
+      document.body.addEventListener("click", () => bgm.play(), { once: true });
+    });
+  }
+});
 </script>
 </body>
 </html>
